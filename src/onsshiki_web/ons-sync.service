@@ -5,7 +5,7 @@ StartLimitIntervalSec=0
 
 [Service]
 WorkingDirectory=/opt/ons_sync
-ExecStart=python3 /opt/ons_sync/onsyuri_sync_server
+ExecStart=python3 /opt/ons_sync/onsshiki_sync_server
 Restart=always
 RestartSec=3
 

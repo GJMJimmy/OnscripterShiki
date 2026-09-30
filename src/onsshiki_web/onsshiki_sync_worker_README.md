@@ -25,7 +25,7 @@ wrangler login        # 会打开浏览器授权
 ## 部署 R2 版（sync-worker-r2/）
 
 ```bash
-cd src/onsyuri_web/sync-worker-r2
+cd src/onsshiki_web/sync-worker-r2
 wrangler r2 bucket create onsyuri-sync        # 创建桶
 # 如需修改桶名，编辑 wrangler.toml 的 bucket_name
 wrangler deploy
@@ -34,7 +34,7 @@ wrangler deploy
 ## 部署 KV 版（sync-worker-kv/）
 
 ```bash
-cd src/onsyuri_web/sync-worker-kv
+cd src/onsshiki_web/sync-worker-kv
 wrangler kv namespace create onsyuri-sync     # 创建命名空间，复制输出的 id
 # 把 id 粘贴进 wrangler.toml 的 kv_namespaces.id
 wrangler deploy
