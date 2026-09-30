@@ -1,0 +1,16 @@
+# OnscripterShiki 存档同步 Worker —— R2 版配置
+# 部署：修改 bucket_name 为你创建的桶名，然后在本目录执行 wrangler deploy
+# 详细步骤见 ../ons_shiki_sync_worker_README.md
+
+name = "ons-shiki-sync-r2"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "ons-shiki-sync" # 改成你自己的桶名（wrangler r2 bucket create <名字>）
+
+# 可选：防滥用密钥。启用后服务地址为 https://xxx.workers.dev/<SYNC_TOKEN>
+# 取消注释并修改即可：
+# [vars]
+# SYNC_TOKEN = "change-me"

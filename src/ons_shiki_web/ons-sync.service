@@ -1,11 +1,11 @@
 [Unit]
-Description=OnscripterYuri save-sync server
+Description=OnscripterShiki save-sync server
 After=network.target
 StartLimitIntervalSec=0
 
 [Service]
 WorkingDirectory=/opt/ons_sync
-ExecStart=python3 /opt/ons_sync/onsyuri_sync_server
+ExecStart=python3 /opt/ons_sync/ons_shiki_sync_server.py
 Restart=always
 RestartSec=3
 

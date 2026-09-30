@@ -1,0 +1,17 @@
+# OnscripterShiki 存档同步 Worker —— KV 版配置
+# 部署：填入 namespace id，然后在本目录执行 wrangler deploy
+# 详细步骤见 ../ons_shiki_sync_worker_README.md
+
+name = "ons-shiki-sync-kv"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[[kv_namespaces]]
+binding = "KV"
+# id 填 wrangler kv namespace create ons-shiki-sync 命令输出的 id
+id = "PASTE_NAMESPACE_ID_HERE"
+
+# 可选：防滥用密钥。启用后服务地址为 https://xxx.workers.dev/<SYNC_TOKEN>
+# 取消注释并修改即可：
+# [vars]
+# SYNC_TOKEN = "change-me"
