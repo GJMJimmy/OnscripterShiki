@@ -1,9 +1,9 @@
-# OnscripterYuri 存档同步 Worker —— KV 版配置模板
-# 用法：复制本文件为 wrangler.toml（与 worker-kv.js 同目录），
-#       填入 namespace id，然后 wrangler deploy
+# OnscripterYuri 存档同步 Worker —— KV 版配置
+# 部署：填入 namespace id，然后在本目录执行 wrangler deploy
+# 详细步骤见 ../onsyuri_sync_worker_README.md
 
 name = "onsyuri-sync-kv"
-main = "worker-kv.js"
+main = "worker.js"
 compatibility_date = "2024-09-01"
 
 [[kv_namespaces]]

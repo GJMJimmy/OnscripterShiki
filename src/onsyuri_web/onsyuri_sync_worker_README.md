@@ -3,12 +3,12 @@
 把存档同步服务部署到 Cloudflare Workers（免费额度足够个人使用），无需自己维护任何机器。
 网页端（OnscripterYuri / Tsukiweb）的「服务器链接」直接填 Worker 地址即可，**游戏页面无需任何改动**。
 
-两个版本任选其一：
+两个版本任选其一，各自位于独立目录（`worker.js` + `wrangler.toml` 已配置好，进入目录即可部署）：
 
-| 版本 | 存储 | 强一致 | 单份上限 | 免费额度 | 是否需绑卡 |
+| 目录 | 存储 | 强一致 | 单份上限 | 免费额度 | 是否需绑卡 |
 |---|---|---|---|---|---|
-| **R2 版**（推荐） | R2 对象存储 | 是（传完即可取） | 64MB | 10GB 存储 + 每月百万级操作 | 需要绑卡（免费额度内不扣费） |
-| **KV 版** | Workers KV | 否（传播最长 60 秒） | 24MB | 每天 1000 次写 | 不需要 |
+| **`sync-worker-r2/`**（推荐） | R2 对象存储 | 是（传完即可取） | 64MB | 10GB 存储 + 每月百万级操作 | 需要绑卡（免费额度内不扣费） |
+| **`sync-worker-kv/`** | Workers KV | 否（传播最长 60 秒） | 24MB | 每天 1000 次写 | 不需要 |
 
 > 存档都很小（KB～MB 级），两版的额度对个人使用都绰绰有余。能绑卡就选 R2。
 
@@ -22,23 +22,21 @@ npm install -g wrangler
 wrangler login        # 会打开浏览器授权
 ```
 
-## 部署 R2 版
+## 部署 R2 版（sync-worker-r2/）
 
 ```bash
-mkdir onsyuri-sync && cd onsyuri-sync
-# 把仓库 src/onsyuri_web/ 下的 worker-r2.js 和 wrangler_r2.toml 复制进来
-wrangler r2 bucket create onsyuri-sync          # 创建桶
-cp wrangler_r2.toml wrangler.toml               # 按需修改桶名
+cd src/onsyuri_web/sync-worker-r2
+wrangler r2 bucket create onsyuri-sync        # 创建桶
+# 如需修改桶名，编辑 wrangler.toml 的 bucket_name
 wrangler deploy
 ```
 
-## 部署 KV 版
+## 部署 KV 版（sync-worker-kv/）
 
 ```bash
-mkdir onsyuri-sync && cd onsyuri-sync
-# 把仓库 src/onsyuri_web/ 下的 worker-kv.js 和 wrangler_kv.toml 复制进来
-wrangler kv namespace create onsyuri-sync       # 创建命名空间，复制输出的 id
-cp wrangler_kv.toml wrangler.toml               # 把 id 粘贴进 toml
+cd src/onsyuri_web/sync-worker-kv
+wrangler kv namespace create onsyuri-sync     # 创建命名空间，复制输出的 id
+# 把 id 粘贴进 wrangler.toml 的 kv_namespaces.id
 wrangler deploy
 ```
 
@@ -62,7 +60,7 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://xxx.workers.dev/save/nothing" 
 
 ## 可选：防滥用密钥
 
-Worker 是公开端点，任何知道地址的人都能读写。若介意，在 `wrangler.toml` 里取消注释：
+Worker 是公开端点，任何知道地址的人都能读写。若介意，在对应目录的 `wrangler.toml` 里取消注释：
 
 ```toml
 [vars]

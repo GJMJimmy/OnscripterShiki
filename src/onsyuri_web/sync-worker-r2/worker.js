@@ -6,9 +6,9 @@
  *   POST /save/{存档码}       上传存档（body 为 zip/json 字节，同名覆盖）
  *   GET  /save/{存档码}       下载存档，不存在返回 404
  *
- * 部署步骤见同目录 onsyuri_sync_worker_README.md。简述：
+ * 部署步骤见 ../onsyuri_sync_worker_README.md。简述：
  *   1. wrangler r2 bucket create onsyuri-sync
- *   2. 复制 wrangler_r2.toml 为 wrangler.toml，按需修改桶名
+ *   2. 确认本目录 wrangler.toml 中的桶名
  *   3. wrangler deploy
  *
  * 可选防滥用：在 wrangler.toml 中加
