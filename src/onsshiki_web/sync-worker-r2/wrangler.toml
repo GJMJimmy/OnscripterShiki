@@ -1,6 +1,6 @@
 # OnscripterYuri 存档同步 Worker —— R2 版配置
 # 部署：修改 bucket_name 为你创建的桶名，然后在本目录执行 wrangler deploy
-# 详细步骤见 ../onsyuri_sync_worker_README.md
+# 详细步骤见 ../onsshiki_sync_worker_README.md
 
 name = "onsyuri-sync-r2"
 main = "worker.js"

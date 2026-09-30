@@ -8,7 +8,7 @@ The game page uploads/downloads its save archive (zip bytes) with:
     GET  /              small status text
 
 Usage (pure python stdlib, no dependencies):
-    python onsyuri_sync_server.py [--port 8765] [--dir saves]
+    python onsshiki_sync_server.py [--port 8765] [--dir saves]
 
 Notes:
 - CORS is fully open, since the game page is usually served from another origin
