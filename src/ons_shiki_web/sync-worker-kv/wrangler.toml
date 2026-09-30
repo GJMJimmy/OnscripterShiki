@@ -1,6 +1,6 @@
 # OnscripterYuri 存档同步 Worker —— KV 版配置
 # 部署：填入 namespace id，然后在本目录执行 wrangler deploy
-# 详细步骤见 ../onsshiki_sync_worker_README.md
+# 详细步骤见 ../ons_shiki_sync_worker_README.md
 
 name = "onsyuri-sync-kv"
 main = "worker.js"

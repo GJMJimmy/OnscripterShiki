@@ -44,7 +44,7 @@ jobs:
         key: emsdk
         path: ${{ env.EMSDK_HOME }}
     
-    - name: build onsshiki_web
+    - name: build ons_shiki_web
       run: |
         if [ -z "$(echo ${{  github.ref_name }} | grep merge)" ]; then 
           sed -i -E 's/#define ONS_YURI_VERSION "(.+?)"/#define ONS_YURI_VERSION "${{  github.ref_name }}"/g' src/onsyuri/version.h
@@ -57,8 +57,8 @@ jobs:
       run: |
         cd build_web
         mkdir ${{ env.BUILD_NAME }} 
-        cp onsshiki.html onsyuri.js onsyuri.wasm ${{ env.BUILD_NAME }}/ 
-        cp onsshiki_index.py ${{ env.BUILD_NAME }}/
+        cp ons_shiki.html onsyuri.js onsyuri.wasm ${{ env.BUILD_NAME }}/ 
+        cp ons_shiki_index.py ${{ env.BUILD_NAME }}/
         7z a -t7z -mtc=on -ms=off -mx=5 -m0=lzma2 ${{ env.BUILD_NAME }}.7z ${{ env.BUILD_NAME }} 
         mv ${{ env.BUILD_NAME }}.7z onsyuri_${{  github.ref_name }}_web.7z
     
