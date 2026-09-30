@@ -11,9 +11,9 @@
  *   - 写入后全球传播最长约 60 秒，另一设备立刻下载可能拿到旧数据
  *   - 免费档每天 1000 次写（个人使用足够）
  *
- * 部署步骤见同目录 onsyuri_sync_worker_README.md。简述：
+ * 部署步骤见 ../onsyuri_sync_worker_README.md。简述：
  *   1. wrangler kv namespace create onsyuri-sync
- *   2. 复制 wrangler_kv.toml 为 wrangler.toml，填入输出的 namespace id
+ *   2. 把输出的 namespace id 填进本目录 wrangler.toml
  *   3. wrangler deploy
  *
  * 可选防滥用：在 wrangler.toml 中加
