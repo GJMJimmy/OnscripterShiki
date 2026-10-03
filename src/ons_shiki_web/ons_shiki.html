@@ -479,6 +479,18 @@
                 if(!fab) return;
                 theme_load();
                 fab_load_pos();
+                // 键盘隔离：输入控件中的按键不冒泡到 window。
+                // SDL 的 window 级 keydown 会无条件 preventDefault（游戏未开启
+                // SDL 文本输入），否则桌面端在输入框里打不出字
+                var panel = document.getElementById("onsyuri_webrmenu");
+                ["keydown", "keyup", "keypress"].forEach((type) => {
+                    panel.addEventListener(type, (event) => {
+                        var t = event.target;
+                        if (t && (t.tagName == "INPUT" || t.tagName == "TEXTAREA" ||
+                                  t.tagName == "SELECT" || t.isContentEditable))
+                            event.stopPropagation();
+                    }, true);
+                });
                 fab.addEventListener("pointerdown", (event)=>{
                     if(!event.isPrimary) return;
                     g_fab_drag = {active: true, moved: false, id: event.pointerId,
