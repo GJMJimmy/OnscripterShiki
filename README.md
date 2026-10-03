@@ -1,6 +1,6 @@
 # Onscripter-Shiki
 
-![GitHub release](https://img.shields.io/github/v/release/YuriSizuku/OnscripterYuri?color=green&label=onsyuri&logo=4chan&style=flat-square)![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/YuriSizuku/OnscripterYuri/build_web.yml?label=web(wasm)&logo=firefox&style=flat-square)
+![GitHub release](https://img.shields.io/github/v/release/GJMJimmy/OnscripterShiki?color=green&label=ons-shiki&logo=4chan&style=flat-square)![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/YuriSizuku/OnscripterYuri/build_web.yml?label=web(wasm)&logo=firefox&style=flat-square)
 ## 项目简介
 
 [OnscripterShiki](https://github.com/GJMJimmy/OnscripterShiki)是基于[OnscripterYuri](https://github.com/YuriSizuku/OnscripterYuri)二次开发的一个增强型 ONScripter 项目，主要修复web端bug、优化web端体验。
