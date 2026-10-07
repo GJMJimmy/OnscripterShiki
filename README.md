@@ -20,6 +20,8 @@ web部署教程可以参考[OnscripterYuri](https://github.com/YuriSizuku/Onscri
 
 - **界面美化**：增加可拖动悬浮球，单击打开/关闭菜单；菜单改为深色毛玻璃风格，可以自定义颜色和透明度 
 
+- **离线游玩**：一键把全部游戏资源缓存到浏览器（Service Worker），断网后也能打开页面继续游玩
+
   
 
 ## 云存档使用教程
@@ -36,7 +38,10 @@ python onsyuri_sync_server.py --port [数字] //可以指定端口
 ```
 
 ### Worker
+
+## 离线游玩
 见[ons_shiki_sync_worker_README.md](https://github.com/GJMJimmy/OnscripterShiki/blob/master/src/ons_shiki_web/ons_shiki_sync_worker_README.md "ons_shiki_sync_worker_README.md")
+
 
 ### 部署好同步服务后
   
@@ -45,3 +50,9 @@ python onsyuri_sync_server.py --port [数字] //可以指定端口
 2. **上传 / 恢复**：上传会把当前存档打包发到该存档码下；恢复则按存档码拉取 zip 并自动写回本地 IndexedDB，刷新即生效
 
 > 存档码就是身份凭证，请用不易被猜中的字符串。
+
+
+游戏菜单（悬浮球）→「离线」→「缓存全部资源」，等待缓存完成后断网也能游玩。注意：
+
+- 仅在 HTTPS 或 localhost 部署下生效
+- 「清除离线缓存」可释放空间；游戏更新版本后需要重新缓存一次
