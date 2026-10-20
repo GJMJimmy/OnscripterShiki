@@ -1,11 +1,17 @@
 # Onscripter-Shiki
 
-![GitHub release](https://img.shields.io/github/v/release/GJMJimmy/OnscripterShiki?color=green&label=ons-shiki&logo=4chan&style=flat-square)![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/YuriSizuku/OnscripterYuri/build_web.yml?label=web(wasm)&logo=firefox&style=flat-square)
+![GitHub release](https://img.shields.io/github/v/release/GJMJimmy/OnscripterShiki?color=green&label=ons-shiki&logo=4chan&style=flat-square)![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/GJMJimmy/OnscripterShiki/build_web.yml?label=web(wasm)&logo=firefox&style=flat-square)
 ## 项目简介
 
 [OnscripterShiki](https://github.com/GJMJimmy/OnscripterShiki)是基于[OnscripterYuri](https://github.com/YuriSizuku/OnscripterYuri)二次开发的一个增强型 ONScripter 项目，主要修复web端bug、优化web端体验。
 
 web部署教程可以参考[OnscripterYuri](https://github.com/YuriSizuku/OnscripterYuri)的`README`或这篇博客[如何在网站上游玩ONS版Galgame？](https://blog.gbjimmy.com/posts/ons-web/)
+
+## 仓库与发布
+
+- 本仓库（`master`）只放引擎与网页外壳；CI 只构建网页版，发布产物也只有 web 包、存档同步服务和 Worker 包。
+- 各游戏的素材与成品部署（`narcissu`、`ever17`、`Aiyoku-no-Eustia`、`Kagetsu-Tohya` 分支）位于私有仓库 `OnscripterShiki-games`，公开仓库不再携带游戏素材。
+- 发版流程：`git tag v0.8.x && git push origin v0.8.x`，CI（[build_web.yml](.github/workflows/build_web.yml)）会自动构建并上传 Release 资产；本地构建用 `script/cross_web.sh`，产物在 `build_web/`，可直接静态托管（入口 `index.html`）。
 
 ## 在原有基础上的修改
 

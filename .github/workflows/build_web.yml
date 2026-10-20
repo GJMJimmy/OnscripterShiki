@@ -1,71 +1,87 @@
 name: build web
+
+# 本仓库只维护网页版：所有平台构建（android/linux/win/darwin）已移除，
+# 发布产物只有 web 包 + 存档同步服务。
 on:
-  push: {tags:  ['v*']} #  Push events to matching v*, i.e. v1.0, v20.15.10
-  pull_request: 
+  push:
+    tags: ['v*']
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: write
-  
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   EMSDK_HOME: /opt/emsdk
-  BUILD_NAME: onsyuri_web
 
 jobs:
-  install_emsdk:
-    runs-on: ubuntu-24.04 # default batch, powershell
+  build_web:
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: check or make emsdk cache
-      id: check_emsdk
-      uses: actions/cache@v3
-      with: 
+      id: emsdk_cache
+      uses: actions/cache@v4
+      with:
         path: ${{ env.EMSDK_HOME }}
-        key: emsdk
-    
+        key: emsdk-${{ runner.os }}
+
     - name: install emsdk
-      if: steps.check_emsdk.outputs.cache-hit != 'true'
+      if: steps.emsdk_cache.outputs.cache-hit != 'true'
       run: |
-        git clone https://github.com/emscripten-core/emsdk.git ${{ env.EMSDK_HOME }}
-        cd ${{ env.EMSDK_HOME }} 
+        git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$EMSDK_HOME"
+        cd "$EMSDK_HOME"
         ./emsdk install latest && ./emsdk activate latest
         source ./emsdk_env.sh
         embuilder build sdl2 sdl2_ttf sdl2_image sdl2_mixer bzip2 ogg vorbis mpg123
 
-  build_web:
-    runs-on: ubuntu-24.04
-    needs: install_emsdk
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: get emsdk cache
-      uses: actions/cache@v3
-      with: 
-        key: emsdk
-        path: ${{ env.EMSDK_HOME }}
-    
-    - name: build ons_shiki_web
+    - name: stamp release version
+      # 只有打 tag 时才写入版本号；master/PR 构建保留源码里的默认值，
+      # 这样两边产物可以对比（tag 构建 = 可发布版本）。
+      if: startsWith(github.ref, 'refs/tags/v')
       run: |
-        if [ -z "$(echo ${{  github.ref_name }} | grep merge)" ]; then 
-          sed -i -E 's/#define ONS_YURI_VERSION "(.+?)"/#define ONS_YURI_VERSION "${{  github.ref_name }}"/g' src/onsyuri/version.h
-        fi
-        cd script 
-        EMCSDK=${{ env.EMCSDK }} bash ./cross_web.sh
-    
-    - name: prepare release
-      if: github.event_name == 'push'
+        VERSION="${GITHUB_REF_NAME}"
+        sed -i -E "s/#define ONS_YURI_VERSION \"[^\"]*\"/#define ONS_YURI_VERSION \"${VERSION}\"/" src/onsyuri/version.h
+        sed -i -E "s|<title>OnscripterShiki v[^<]*</title>|<title>OnscripterShiki ${VERSION}</title>|" src/ons_shiki_web/ons_shiki.html
+        # 缓存名跟着版本走，否则 Service Worker 的 cache-first 会一直命中旧资源
+        sed -i -E "s/ons_shiki_v[0-9][^\"]*/ons_shiki_${VERSION}/g" src/ons_shiki_web/ons_shiki.html src/ons_shiki_web/ons_shiki_sw.js
+        grep -n 'ONS_SW_CACHE' src/ons_shiki_web/ons_shiki_sw.js
+
+    - name: build
       run: |
-        cd build_web
-        mkdir ${{ env.BUILD_NAME }} 
-        cp ons_shiki.html onsyuri.js onsyuri.wasm ${{ env.BUILD_NAME }}/ 
-        cp ons_shiki_index.py ${{ env.BUILD_NAME }}/
-        7z a -t7z -mtc=on -ms=off -mx=5 -m0=lzma2 ${{ env.BUILD_NAME }}.7z ${{ env.BUILD_NAME }} 
-        mv ${{ env.BUILD_NAME }}.7z onsyuri_${{  github.ref_name }}_web.7z
-    
-    - name: create release
-      uses: ncipollo/release-action@v1
-      if: github.event_name == 'push'
+        cd script
+        bash ./cross_web.sh
+
+    - name: package
+      run: |
+        VERSION="${GITHUB_REF_NAME:-$(date +%Y%m%d)-$(git rev-parse --short HEAD)}"
+        mkdir -p dist/onsyuri_web
+        cp build_web/index.html build_web/onsyuri.js build_web/onsyuri.wasm \
+           build_web/ons_shiki_sw.js build_web/ons_shiki_index.py dist/onsyuri_web/
+        cp README.md dist/onsyuri_web/
+        (cd dist && zip -qr "onsyuri-web-${VERSION}.zip" onsyuri_web)
+        cp src/ons_shiki_web/ons_shiki_sync_server.py dist/
+        (cd src/ons_shiki_web && zip -qr "$GITHUB_WORKSPACE/dist/ons-shiki-sync-worker-r2.zip" sync-worker-r2)
+        (cd src/ons_shiki_web && zip -qr "$GITHUB_WORKSPACE/dist/ons-shiki-sync-worker-kv.zip" sync-worker-kv)
+        ls -lh dist
+
+    - name: upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        artifacts: "./build_web/onsyuri_${{  github.ref_name }}_web.7z"
-        allowUpdates: "true"
-        token: ${{ secrets.GITHUB_TOKEN }}
+        name: onsyuri-web
+        path: dist/
+
+    - name: publish release
+      if: startsWith(github.ref, 'refs/tags/v')
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+          || gh release create "$GITHUB_REF_NAME" --title "OnscripterShiki $GITHUB_REF_NAME" --generate-notes
+        gh release upload "$GITHUB_REF_NAME" dist/*.zip dist/*.py --clobber

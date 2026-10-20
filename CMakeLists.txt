@@ -463,12 +463,21 @@ function(config_platform TARGET_NAME)
         endif()
     elseif(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
         config_web(${TARGET_NAME})
+        # The web shell and its companions must sit next to onsyuri.js/wasm:
+        #   index.html       static-host entry point (same layout as deployed sites)
+        #   ons_shiki.html   same file under the old name, convenient for local opening
+        #   ons_shiki_sw.js  service worker for offline play (missing it fails silently)
+        #   *.py             ons_shiki_index.py generator and the save-sync server
         add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy 
-                ${CMAKE_SOURCE_DIR}/src/ons_shiki_web/*.html ${CMAKE_BINARY_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy 
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_SOURCE_DIR}/src/ons_shiki_web/ons_shiki.html ${CMAKE_BINARY_DIR}/ons_shiki.html
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_SOURCE_DIR}/src/ons_shiki_web/ons_shiki.html ${CMAKE_BINARY_DIR}/index.html
+            COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_SOURCE_DIR}/src/ons_shiki_web/ons_shiki_sw.js ${CMAKE_BINARY_DIR}
+            COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_SOURCE_DIR}/src/ons_shiki_web/*.py ${CMAKE_BINARY_DIR}
-            COMMAND ${CMAKE_COMMAND} -E copy 
+            COMMAND ${CMAKE_COMMAND} -E copy
                 ${CMAKE_SOURCE_DIR}/asset/icon1.ico ${CMAKE_BINARY_DIR}/favicon.ico
         )
     elseif(CMAKE_SYSTEM_NAME MATCHES "Android")
