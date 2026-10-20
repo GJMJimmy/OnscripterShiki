@@ -3749,7 +3749,15 @@ int ONScripter::bltCommand()
 
 int ONScripter::bgcopyCommand()
 {
+#ifdef WEB
+    // SDL_RenderReadPixels on the WebGL default framebuffer is unreliable: after
+    // present the buffer is undefined and often reads back as black, which then
+    // gets baked into bg_info (visible as a black rectangle on screen).
+    // The software accumulation surface already holds the composited frame, so
+    // snapshot that instead.
+#else
     ofscopyCommand();
+#endif
     
     setStr( &bg_info.file_name, "*bgcpy" );
     bg_info.num_of_cells = 1;
