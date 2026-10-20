@@ -792,19 +792,21 @@
                 if(g_offline_running) { show_toast("正在缓存中，请稍候…", "info"); return; }
                 if(!offline_supported()) { show_toast("当前环境不支持离线缓存（需 HTTPS 或 localhost）", "warning"); return; }
                 if(!g_onsyuri_index || !g_onsyuri_index.files) { show_toast("游戏资源清单尚未加载", "warning"); return; }
-                // critical files first: page, engine, font, scripts, ui art, then bulk data;
-                // a partial cache still boots the game offline
-                var core = ["onsyuri_index.json", "onsyuri.js", "onsyuri.wasm", "default.ttf", "icon.png"];
-                var rest = g_onsyuri_index.files.map((f)=>f.path)
-                    .filter((p)=>p && p != "onsyuri.html" && core.indexOf(p) < 0);
-                var pull = (pred)=>{ var out = rest.filter(pred); rest = rest.filter((p)=>!pred(p)); return out; };
+                // critical files first: page, engine, scripts, ui art, then bulk data;
+                // a partial cache still boots the game offline.
+                // 游戏资源可能放在子目录（index 里带 url 字段），一律按 url 取
+                var core = ["onsyuri_index.json", "onsyuri.js", "onsyuri.wasm", "ons_shiki_sw.js"];
+                var rest = g_onsyuri_index.files
+                    .filter((f)=>f && f.path && core.indexOf(f.path) < 0);
+                var urlOf = (f)=>f.url || f.path;
+                var pull = (pred)=>{ var out = rest.filter((f)=>pred(f.path)).map(urlOf); rest = rest.filter((f)=>!pred(f.path)); return out; };
                 var list = [location.pathname].concat(core)
                     .concat(pull((p)=>p.slice(-4) == ".txt"))
                     .concat(pull((p)=>p.indexOf("esystem/") == 0))
                     .concat(pull((p)=>p.indexOf("background/") == 0))
                     .concat(pull((p)=>p.indexOf("foreground/") == 0))
                     .concat(pull((p)=>p.indexOf("music/") == 0))
-                    .concat(rest);
+                    .concat(rest.map(urlOf));
                 g_offline_running = true;
                 show_toast("离线缓存 0/" + list.length + " …", "info", 3600000);
                 var toast = document.getElementById("onsyuri_toast");
