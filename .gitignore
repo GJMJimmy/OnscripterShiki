@@ -5,6 +5,7 @@ asset/stdout.txt
 asset/stderr.txt
 build/**
 build_*/**
+dist/**
 thirdparty/**
 script/*.json
 save

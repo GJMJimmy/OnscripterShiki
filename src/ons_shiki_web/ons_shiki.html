@@ -204,7 +204,9 @@
                     if(file_lazyload==undefined) file_lazyload = lazyload;
                     if(file_lazyload){ // pay attension to the case sensitive!
                         var key = basedir + filename;
-                        filemap[key.toLowerCase()] = {url: url, loaded:false};
+                        // 引擎用小写 key 查表，但之后仍按原始大小写 fopen 重开；
+                        // 所以下载完必须写到原始路径，否则大写目录（如 【ONS】Ever17）会 ENOENT
+                        filemap[key.toLowerCase()] = {url: url, loaded:false, path: key};
                     }
                     else {
                         _FS.createPreloadedFile(basedir, filename, url, true, false);
@@ -263,14 +265,17 @@
                     }
                     else{
                         if(fnode.loaded) res(1);
+                        // path is the lowercased lookup key; fnode.path keeps the original case
+                        var target = fnode.path || path;
                         fetch(fnode.url).then( (resp)=>{
                             return resp.arrayBuffer();
                         }).then((data)=>{
-                            _FS.writeFile(path, new Uint8Array(data));
+                            em_mkdirs(_FS, target.substring(0, target.lastIndexOf("/") + 1));
+                            _FS.writeFile(target, new Uint8Array(data));
                             fnode.loaded = true;
                             res(1);
                         }).catch((err)=>{
-                            console.log("## fetch_file ${path}", err);
+                            console.log("## fetch_file " + target, err);
                             res(-1);
                         })
                     }
