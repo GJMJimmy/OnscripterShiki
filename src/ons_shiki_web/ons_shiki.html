@@ -915,13 +915,42 @@
                 const videoUrl = URL.createObjectURL(videoBlob);
                 video.src = videoUrl;
 
+                // measure before hiding the canvas (display:none zeroes its rect)
+                var crect = g_onsyuri_module.canvas.getBoundingClientRect();
                 g_onsyuri_module.canvas.style.display="none";
+                // match the canvas box, otherwise the movie shows at its raw size
+                video.style.width = crect.width + "px";
+                video.style.height = crect.height + "px";
+                video.style.objectFit = "contain";
+                video.style.background = "#000";
                 video.style.display="block";
 
                 video.onclick=click_flag?videoEnded:null;
                 video.loop=loop_flag;
 
-                video.play();
+                var p = video.play();
+                if (p && p.catch) p.catch((e)=>{ // autoplay policy / codec issues
+                    console.log("## playVideo rejected", e && e.name);
+                    videoEnded();
+                });
+            }
+
+            // Jh `mp4` command: the file may not be in the FS yet (lazyload),
+            // so fetch it first, then hand over to playVideo.
+            async function playVideoLazy(name, click_flag, loop_flag){
+                g_onsyuri_module.wait_video = true;
+                var path = g_onsyuri_index.gamedir + "/" + name;
+                var key = path.toLowerCase();
+                try{
+                    var fnode = (window.g_onsyuri_filemap || {})[key];
+                    if (fnode && !fnode.loaded)
+                        await fetch_file(g_onsyuri_module.FS, key, window.g_onsyuri_filemap);
+                    playVideo(path, !!click_flag, !!loop_flag);
+                }
+                catch(e){
+                    console.log("## playVideoLazy failed", name, e);
+                    g_onsyuri_module.wait_video = false;
+                }
             }
 
             video.addEventListener('error', function(event) {

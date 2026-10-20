@@ -1,4 +1,4 @@
-/* -*- C++ -*-
+﻿/* -*- C++ -*-
  * 
  *  ONScripter.h - Execution block parser of ONScripter
  *
@@ -206,6 +206,8 @@ public:
     int mp3fadeinCommand();
     int mp3Command();
     int movieCommand();
+    int mp4Command();
+    int specialEffectCommand();
     int movemousecursorCommand();
     int monocroCommand();
     int menu_windowCommand();
@@ -830,3 +832,4 @@ private:
 };
 
 #endif // __ONSCRIPTER_H__
+

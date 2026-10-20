@@ -1,4 +1,4 @@
-/* -*- C++ -*-
+﻿/* -*- C++ -*-
  * 
  *  ONScripter_command.cpp - Command executer of ONScripter
  *
@@ -23,6 +23,9 @@
  */
 
 #include "ONScripter.h"
+#ifdef WEB
+#include <emscripten.h>
+#endif
 #if defined(LINUX) || defined(MACOSX) || defined(IOS)
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1580,6 +1583,70 @@ int ONScripter::movieCommand()
     return RET_CONTINUE;
 }
 
+// ONScripter-Jh: mp4 "name"[, click][, loop]
+// The web build plays it through the HTML5 <video> element (H.264/AAC).
+int ONScripter::mp4Command()
+{
+    if (script_h.compareString("stop")){
+        script_h.readLabel();
+        return RET_CONTINUE;
+    }
+
+    const char *buf = script_h.readStr();
+    const char *name = script_h.saveStringBuffer();
+
+    bool click_flag = true;
+    bool loop_flag = false;
+    while (script_h.getEndStatus() & ScriptHandler::END_COMMA){
+        if (script_h.compareString("click")){
+            script_h.readLabel();
+            click_flag = true;
+        }
+        else if (script_h.compareString("loop")){
+            script_h.readLabel();
+            loop_flag = true;
+        }
+        else{
+            script_h.readLabel();
+        }
+    }
+
+    stopBGM(false);
+
+#ifdef WEB
+    // add the .mp4 suffix when the script only gives a base name
+    char filename[256];
+    size_t len = strlen(name);
+    bool has_mp4 = (len > 4 &&
+                    name[len-4] == '.' &&
+                    tolower((unsigned char)name[len-3]) == 'm' &&
+                    tolower((unsigned char)name[len-2]) == 'p' &&
+                    name[len-1] == '4');
+    snprintf(filename, sizeof(filename), has_mp4 ? "%s" : "%s.mp4", name);
+
+    printf("## mp4: playing %s\n", filename);
+    EM_ASM(
+        if (window.playVideoLazy) playVideoLazy(UTF8ToString($0), $1, $2);
+    , filename, (int)click_flag, (int)loop_flag);
+
+    while(EM_ASM_INT(return g_onsyuri_module.wait_video;)) SDL_Delay(5);
+#else
+    utils::printError(" [mp4] is only supported on the web build, ignored: %s\n", name);
+#endif
+
+    return RET_CONTINUE;
+}
+
+// ONScripter-Jh: specialEffect n, m
+// Effect ids are engine specific; accept and ignore for now so the parameters
+// are consumed and the script stays in sync.
+int ONScripter::specialEffectCommand()
+{
+    script_h.readInt();
+    script_h.readInt();
+    return RET_CONTINUE;
+}
+
 int ONScripter::movemousecursorCommand()
 {
     int x = script_h.readInt() * screen_ratio1 / screen_ratio2;
@@ -2270,7 +2337,7 @@ int ONScripter::gettagCommand()
     if (pretext_buf[0] == ']')
         pretext_buf++;
     else if (zenkakko_flag && 
-             pretext_buf[0] == "��"[0] && pretext_buf[1] == "��"[1])
+             pretext_buf[0] == "锟斤拷"[0] && pretext_buf[1] == "锟斤拷"[1])
         pretext_buf += 2;
 
     return RET_CONTINUE;
@@ -4200,3 +4267,5 @@ void ONScripter::stopSMPEG()
     }
 #endif        
 }
+
+

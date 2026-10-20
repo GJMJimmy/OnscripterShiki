@@ -1,4 +1,4 @@
-/* -*- C++ -*-
+﻿/* -*- C++ -*-
  * 
  *  ONScripter_lut.cpp - command lookup-table for ONScripter
  *
@@ -167,6 +167,8 @@ static ONScripter::FuncLUT func_lut[] = {
     {"mp3",				&ONScripter::mp3Command},
     {"movl",			&ONScripter::movCommand},
     {"movie",			&ONScripter::movieCommand},
+    {"mp4",			&ONScripter::mp4Command},
+    {"specialEffect",	&ONScripter::specialEffectCommand},
     {"movemousecursor",	&ONScripter::movemousecursorCommand},
     {"mov9",			&ONScripter::movCommand},
     {"mov8",			&ONScripter::movCommand},
@@ -415,3 +417,4 @@ void ONScripter::makeFuncLUT()
         idx++;
     }
 }
+
