@@ -48,10 +48,10 @@ jobs:
       run: |
         VERSION="${GITHUB_REF_NAME}"
         sed -i -E "s/#define ONS_YURI_VERSION \"[^\"]*\"/#define ONS_YURI_VERSION \"${VERSION}\"/" src/onsyuri/version.h
-        sed -i -E "s|<title>OnscripterShiki v[^<]*</title>|<title>OnscripterShiki ${VERSION}</title>|" src/ons_shiki_web/ons_shiki.html
-        # 缓存名跟着版本走，否则 Service Worker 的 cache-first 会一直命中旧资源
-        sed -i -E "s/ons_shiki_v[0-9][^\"]*/ons_shiki_${VERSION}/g" src/ons_shiki_web/ons_shiki.html src/ons_shiki_web/ons_shiki_sw.js
-        grep -n 'ONS_SW_CACHE' src/ons_shiki_web/ons_shiki_sw.js
+        # 单一版本源：标题、关于面板、Service Worker 缓存名都由这个 meta 派生
+        sed -i -E "s|<meta name=\"ons_version\" content=\"[^\"]*\">|<meta name=\"ons_version\" content=\"${VERSION}\">|" src/ons_shiki_web/ons_shiki.html
+        sed -i -E "s|<title>OnscripterShiki [^<]*</title>|<title>OnscripterShiki ${VERSION}</title>|" src/ons_shiki_web/ons_shiki.html
+        grep -n 'ons_version' src/ons_shiki_web/ons_shiki.html | head -2
 
     - name: build
       run: |

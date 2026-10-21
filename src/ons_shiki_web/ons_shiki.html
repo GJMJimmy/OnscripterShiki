@@ -5,7 +5,8 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <meta onsyuri_js="onsyuri.js">
         <meta onsyuri_index="onsyuri_index.json">
-        <title>OnscripterShiki v0.8.3</title>
+        <meta name="ons_version" content="v0.8.4">
+        <title>OnscripterShiki v0.8.4</title>
     </head>
     <body style="margin: 0 auto; background-color:black;">
         <canvas id="canvas" oncontextmenu="event.preventDefault()" style="margin: 0 auto; display: block;"></canvas> 
@@ -482,6 +483,10 @@
             function fab_init() {
                 var fab = get_fab();
                 if(!fab) return;
+                // 版本号统一由 <meta name="ons_version"> 驱动
+                document.title = "OnscripterShiki " + ONS_VERSION;
+                var verLabel = document.getElementById("ons_version_label");
+                if(verLabel) verLabel.textContent = ONS_VERSION;
                 theme_load();
                 fab_load_pos();
                 // 键盘隔离：输入控件中的按键不冒泡到 window。
@@ -760,8 +765,10 @@
             }
 
             // ---- offline cache with a service worker ----
+            // 版本号只有一个来源：<meta name="ons_version">，CI 发版时只改这一处
+            const ONS_VERSION = ((document.querySelector('meta[name="ons_version"]') || {}).content || "dev").trim();
             var ONS_SW_URL = "ons_shiki_sw.js";
-            var ONS_SW_CACHE = "ons_shiki_v0.8.3";
+            var ONS_SW_CACHE = "ons_shiki_" + ONS_VERSION;
             var g_offline_running = false;
 
             function offline_supported() {
@@ -772,7 +779,7 @@
 
             function offline_register() {
                 if(!offline_supported()) return;
-                navigator.serviceWorker.register(ONS_SW_URL).catch((e)=>{
+                navigator.serviceWorker.register(ONS_SW_URL + "?v=" + encodeURIComponent(ONS_VERSION)).catch((e)=>{
                     console.log("service worker register failed:", e);
                 });
             }
@@ -1249,7 +1256,7 @@
         
         <div id="onsyuri_webinfo">
             <p>游戏资源加载中 …</p>
-            <p>Powered by <a href="https://github.com/GJMJimmy/OnscripterShiki" target="_blank">OnscripterShiki</a> v0.8.3</p>
+            <p>Powered by <a href="https://github.com/GJMJimmy/OnscripterShiki" target="_blank">OnscripterShiki</a> <span id="ons_version_label">v0.8.4</span></p>
             <hr>
             <p>悬浮球 / F9：显示菜单</p>
             <p>F10 拉伸全屏；F11 全屏</p>

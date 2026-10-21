@@ -3,7 +3,9 @@
 // game keeps working offline once its files have been fetched (menu button
 // precaches everything; playing online also accumulates the cache).
 // Only HTTPS or localhost pages get a service worker.
-var ONS_SW_CACHE = "ons_shiki_v0.8.3";
+// 版本号由页面注册时的 ?v= 传入（单一来源：页面里的 <meta name="ons_version">）
+var ONS_VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
+var ONS_SW_CACHE = "ons_shiki_" + ONS_VERSION;
 
 self.addEventListener("install", (event) => {
     self.skipWaiting();
