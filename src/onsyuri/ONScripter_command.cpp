@@ -305,6 +305,7 @@ int ONScripter::texecCommand()
     }
 
     saveon_flag = true;
+    internal_saveon_flag = true;
     
     return RET_CONTINUE;
 }
@@ -1025,8 +1026,10 @@ int ONScripter::savepointCommand()
 
 int ONScripter::saveonCommand()
 {
-    if (!autosaveoff_flag)
+    if (!autosaveoff_flag){
         saveon_flag = true;
+        internal_saveon_flag = true; // 与 saveoff 配对，重新允许文本快照
+    }
 
     return RET_CONTINUE;
 }
@@ -1037,6 +1040,7 @@ int ONScripter::saveoffCommand()
         if (saveon_flag && internal_saveon_flag) storeSaveFile();
     
         saveon_flag = false;
+        internal_saveon_flag = false; // 直到下一次 saveon
     }
 
     return RET_CONTINUE;

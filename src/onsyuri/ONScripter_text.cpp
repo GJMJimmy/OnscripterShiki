@@ -681,7 +681,10 @@ void ONScripter::endRuby(bool flush_flag, bool lookback_flag, SDL_Surface *surfa
 
 int ONScripter::textCommand()
 {
-    if (line_enter_status <= 1 && (!pretextgosub_label || saveon_flag) && internal_saveon_flag){
+    // pretextgosub 型脚本（Ever17 等 Jh 移植）用自己的循环显示文本，
+    // 只在开场调一次 saveon，之后 saveon_flag 不会再被置回，快照会冻结在开头。
+    // 这里以 internal_saveon_flag 为准（saveoff 仍会通过 internal 关闭快照）。
+    if (line_enter_status <= 1 && internal_saveon_flag){
         storeSaveFile();
         internal_saveon_flag = false;
     }
