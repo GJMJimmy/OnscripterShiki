@@ -27,6 +27,8 @@ self.addEventListener("fetch", (event) => {
     var url = new URL(request.url);
     if (url.origin != self.location.origin) return;
     if (url.pathname.indexOf("/save/") >= 0) return; // save-sync API, never cached
+    // 页面侧预缓存（X-Ons-Precache）自己写 Cache Storage，这里不再重复缓存一遍
+    if (request.headers.get("X-Ons-Precache")) return;
     if (request.mode == "navigate") {
         // network-first so page updates still arrive, cache keeps it playable offline
         event.respondWith((async () => {

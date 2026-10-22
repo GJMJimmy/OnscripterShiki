@@ -402,7 +402,14 @@
                 if(onsyuri_webrmenu.style.display=="none") {
                     build_menu();
                     onsyuri_webrmenu.style.display = "block";
-                    menu_place_panel(); // measure after shown, position before paint
+                    if (g_ui_mode == "sidebar") {
+                        // 侧边栏模式没有悬浮球可依附，面板居中显示
+                        onsyuri_webrmenu.classList.add("ons-panel-center");
+                        center_panel(onsyuri_webrmenu);
+                    }
+                    else {
+                        menu_place_panel(); // measure after shown, position before paint
+                    }
                     if(fab) fab.classList.add("open");
                 }
                 else {
@@ -544,22 +551,54 @@
 
             // ---- appearance customization ----
             const ONS_THEME_KEY = "onsyuri_ui_theme";
-            const ONS_THEME_DEFAULT = {color: "#38bdf8", fabAlpha: 0.92, panelAlpha: 0.82};
+            const ONS_THEME_DEFAULT = {
+                color: "#38bdf8", fabAlpha: 0.92, panelAlpha: 0.82,
+                mode: "sidebar", sideAlpha: 0.78,
+                btnColor: "#ffffff", activeColor: "#ff6fb1"
+            };
+
+            function ons_hex_rgb(hex) {
+                hex = String(hex || "#38bdf8").replace("#", "");
+                if (hex.length == 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+                var n = parseInt(hex, 16);
+                if (isNaN(n)) n = 0x38bdf8;
+                return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+            }
+            function ons_rgba(hex, a) {
+                var c = ons_hex_rgb(hex);
+                return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")";
+            }
+            function ons_shade(hex, t) { // 向深蓝混合，替代 color-mix（WebView 99 不支持）
+                var c = ons_hex_rgb(hex), target = [12, 74, 110];
+                return "rgb(" + Math.round(c[0] + (target[0]-c[0])*t) + "," +
+                                Math.round(c[1] + (target[1]-c[1])*t) + "," +
+                                Math.round(c[2] + (target[2]-c[2])*t) + ")";
+            }
 
             function apply_theme(theme) {
                 var root = document.documentElement.style;
                 root.setProperty("--ons-accent", theme.color);
                 root.setProperty("--ons-fab-alpha", String(theme.fabAlpha));
                 root.setProperty("--ons-panel-alpha", String(theme.panelAlpha));
+                root.setProperty("--ons-side-alpha", String(theme.sideAlpha));
+                root.setProperty("--ons-side-btn", theme.btnColor);
+                root.setProperty("--ons-side-active", theme.activeColor);
+                root.setProperty("--ons-accent-deep", ons_shade(theme.color, .45));
+                root.setProperty("--ons-accent-weak", ons_rgba(theme.color, .15));
+                root.setProperty("--ons-accent-glow", ons_rgba(theme.color, .35));
+                root.setProperty("--ons-accent-glow-2", ons_rgba(theme.color, .5));
+                apply_ui_mode(theme.mode);
             }
 
             function theme_load() {
-                var theme = ONS_THEME_DEFAULT;
+                var theme = {}, k;
+                for (k in ONS_THEME_DEFAULT) theme[k] = ONS_THEME_DEFAULT[k];
                 try {
                     var saved = JSON.parse(localStorage.getItem(ONS_THEME_KEY));
-                    if(saved && typeof saved.color == "string" &&
-                       typeof saved.fabAlpha == "number" && typeof saved.panelAlpha == "number")
-                        theme = saved;
+                    if (saved && typeof saved == "object") {
+                        for (k in ONS_THEME_DEFAULT)
+                            if (saved[k] !== undefined && saved[k] !== null) theme[k] = saved[k];
+                    }
                 } catch(e) {} // keep defaults on broken storage
                 apply_theme(theme);
                 return theme;
@@ -569,41 +608,92 @@
                 try { localStorage.setItem(ONS_THEME_KEY, JSON.stringify(theme)); } catch(e) {}
             }
 
+            async function clear_site_cache() {
+                show_toast("正在清理缓存…", "info", 60000);
+                try {
+                    var keys = await caches.keys();
+                    await Promise.all(keys.map(function(k){ return caches.delete(k); }));
+                } catch(e) {}
+                try {
+                    var regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(function(r){ return r.unregister(); }));
+                } catch(e) {}
+                try { localStorage.removeItem("onsyuri_offline_done"); } catch(e) {}
+                location.reload();
+            }
+
             function show_theme_view() {
                 var theme = theme_load();
                 var panel = document.getElementById("onsyuri_webrmenu");
+                var modeSide = theme.mode != "fab";
                 panel.innerHTML =
                     '<div class="ons-group">' +
+                        '<div class="ons-label">界面</div>' +
+                        '<div class="ons-seg" id="ons_mode_seg">' +
+                            '<button class="ons-seg-btn' + (modeSide ? ' active' : '') + '" data-mode="sidebar">侧边栏</button>' +
+                            '<button class="ons-seg-btn' + (modeSide ? '' : ' active') + '" data-mode="fab">悬浮球</button>' +
+                        '</div>' +
                         '<div class="ons-label">外观设置</div>' +
                         '<div class="ons-field"><span>主色调</span>' +
                         '<input id="ons_theme_color" class="ons-color" type="color" value="' + theme.color + '"></div>' +
+                        '<div class="ons-field"><span>按键颜色</span>' +
+                        '<input id="ons_theme_btn" class="ons-color" type="color" value="' + theme.btnColor + '"></div>' +
+                        '<div class="ons-field"><span>触发后按键颜色</span>' +
+                        '<input id="ons_theme_active" class="ons-color" type="color" value="' + theme.activeColor + '"></div>' +
+                        '<div class="ons-field"><span>侧边栏透明度 <b id="ons_side_alpha_val">' + Math.round(theme.sideAlpha*100) + '%</b></span>' +
+                        '<input id="ons_theme_side" class="ons-range" type="range" min="10" max="100" step="1" value="' + Math.round(theme.sideAlpha*100) + '"></div>' +
                         '<div class="ons-field"><span>悬浮球透明度 <b id="ons_fab_alpha_val">' + Math.round(theme.fabAlpha*100) + '%</b></span>' +
                         '<input id="ons_theme_fab" class="ons-range" type="range" min="30" max="100" step="1" value="' + Math.round(theme.fabAlpha*100) + '"></div>' +
                         '<div class="ons-field"><span>面板透明度 <b id="ons_panel_alpha_val">' + Math.round(theme.panelAlpha*100) + '%</b></span>' +
                         '<input id="ons_theme_panel" class="ons-range" type="range" min="30" max="100" step="1" value="' + Math.round(theme.panelAlpha*100) + '"></div>' +
                         '<div class="ons-row">' +
                         '<button class="ons-btn ons-btn-ghost" id="ons_theme_reset">' + ONS_ICONS.sync + '<span>恢复默认</span></button>' +
+                        '<button class="ons-btn ons-btn-ghost" id="ons_cache_clear">' + ONS_ICONS.trash + '<span>清空缓存</span></button>' +
                         '</div>' +
                         '<button class="ons-item" id="ons_theme_back">' + ONS_ICONS.back + '<span>返回</span></button>' +
                     '</div>';
-                var color = document.getElementById("ons_theme_color");
-                var fab = document.getElementById("ons_theme_fab");
-                var panelAlpha = document.getElementById("ons_theme_panel");
-                var apply = ()=>{
-                    var t = {color: color.value, fabAlpha: fab.value/100, panelAlpha: panelAlpha.value/100};
+                var segBtns = document.querySelectorAll("#ons_mode_seg .ons-seg-btn");
+                function current() {
+                    var mode = "sidebar";
+                    for (var i = 0; i < segBtns.length; i++)
+                        if (segBtns[i].classList.contains("active")) mode = segBtns[i].getAttribute("data-mode");
+                    return {
+                        color: document.getElementById("ons_theme_color").value,
+                        btnColor: document.getElementById("ons_theme_btn").value,
+                        activeColor: document.getElementById("ons_theme_active").value,
+                        sideAlpha: document.getElementById("ons_theme_side").value/100,
+                        fabAlpha: document.getElementById("ons_theme_fab").value/100,
+                        panelAlpha: document.getElementById("ons_theme_panel").value/100,
+                        mode: mode
+                    };
+                }
+                function apply() {
+                    var t = current();
                     apply_theme(t);
+                    document.getElementById("ons_side_alpha_val").textContent = Math.round(t.sideAlpha*100) + "%";
                     document.getElementById("ons_fab_alpha_val").textContent = Math.round(t.fabAlpha*100) + "%";
                     document.getElementById("ons_panel_alpha_val").textContent = Math.round(t.panelAlpha*100) + "%";
                     theme_save(t);
-                };
-                color.addEventListener("input", apply);
-                fab.addEventListener("input", apply);
-                panelAlpha.addEventListener("input", apply);
-                document.getElementById("ons_theme_reset").addEventListener("click", ()=>{
+                }
+                ["ons_theme_color","ons_theme_btn","ons_theme_active"].forEach(function(id){
+                    document.getElementById(id).addEventListener("input", apply);
+                });
+                ["ons_theme_side","ons_theme_fab","ons_theme_panel"].forEach(function(id){
+                    document.getElementById(id).addEventListener("input", apply);
+                });
+                for (var i = 0; i < segBtns.length; i++) {
+                    segBtns[i].addEventListener("click", function(){
+                        for (var j = 0; j < segBtns.length; j++) segBtns[j].classList.remove("active");
+                        this.classList.add("active");
+                        apply();
+                    });
+                }
+                document.getElementById("ons_theme_reset").addEventListener("click", function(){
                     localStorage.removeItem(ONS_THEME_KEY);
                     apply_theme(ONS_THEME_DEFAULT);
                     show_theme_view();
                 });
+                document.getElementById("ons_cache_clear").addEventListener("click", clear_site_cache);
                 document.getElementById("ons_theme_back").addEventListener("click", build_menu);
             }
 
@@ -640,6 +730,12 @@
                 download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><polyline points="7 9 12 14 17 9"/><path d="M4 20h16"/></svg>',
                 trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1.2 13a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
                 droplet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7s6.3 6.6 6.3 11a6.3 6.3 0 0 1-12.6 0c0-4.4 6.3-11 6.3-11z"/></svg>',
+                gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+                runner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="4.6" r="1.7"/><path d="M14.6 8.6l-2.6 3.6 2.5 2.5-2.1 5.2"/><path d="M16.2 8.6l2 3.6 3.3 1"/><path d="M6.4 13.6l4-1.4"/><path d="M12 14.7l-3 5.4"/></svg>',
+                cloudup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.7 1.2A3.4 3.4 0 0 0 7 18z"/><polyline points="12 15 12 8.5"/><polyline points="9 11.5 12 8.5 15 11.5"/></svg>',
+                play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="8 5 19 12 8 19"/></svg>',
+                lookback_up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h9a6 6 0 0 1 0 12H8"/><polyline points="8 5 4 9 8 13"/></svg>',
+                lookback_down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15h9a6 6 0 0 0 0-12H8"/><polyline points="8 11 4 15 8 19"/></svg>',
             };
 
             function build_menu() {
@@ -660,6 +756,7 @@
                     {label: "离线", items: [
                         {icon: "download", label: "缓存全部资源", onclick: offline_precache},
                         {icon: "trash", label: "清除离线缓存", onclick: offline_clear},
+                        {icon: "trash", label: "清空缓存并刷新", onclick: clear_site_cache},
                     ]},
                     {label: "外观", items: [
                         {icon: "droplet", label: "外观设置", onclick: show_theme_view},
@@ -731,7 +828,9 @@
             }
 
             function hide_webmenu() {
-                document.getElementById("onsyuri_webrmenu").style.display = "none";
+                var panel = document.getElementById("onsyuri_webrmenu");
+                panel.style.display = "none";
+                panel.classList.remove("ons-panel-center");
                 document.getElementById("onsyuri_webinfo").style.display = "none";
                 var fab = get_fab();
                 if(fab) fab.classList.remove("open");
@@ -763,6 +862,143 @@
                 }
                 catch(e) { show_toast("下载失败: " + e.message, "error"); }
             }
+
+            // ---- sidebar controls（侧边栏，WebView 也可用） ----
+            var g_ui_mode = "sidebar";
+            var g_skip_hold = false, g_skip_sticky = false, g_skip_sent = false, g_auto_on = false;
+
+            function canvas_key(type, key, code, keyCode) {
+                var canvas = document.getElementById("canvas");
+                canvas.dispatchEvent(new KeyboardEvent(type, {
+                    bubbles: true, cancelable: true, key: key, code: code,
+                    keyCode: keyCode, which: keyCode
+                }));
+            }
+            function tap_key(key, code, keyCode) {
+                canvas_key("keydown", key, code, keyCode);
+                canvas_key("keyup", key, code, keyCode);
+            }
+            function sync_skip_state() {
+                var on = g_skip_hold || g_skip_sticky;
+                if (on != g_skip_sent) {
+                    canvas_key(on ? "keydown" : "keyup", "Control", "ControlLeft", 0x11);
+                    g_skip_sent = on;
+                }
+                var b = document.querySelector('#ons_sidebar .ons-side-btn[data-kind="skip-sticky"]');
+                if (b) b.classList.toggle("active", g_skip_sticky);
+                var h = document.querySelector('#ons_sidebar .ons-side-btn[data-kind="skip-hold"]');
+                if (h) h.classList.toggle("active", g_skip_hold);
+            }
+            function toggle_auto() {
+                tap_key("a", "KeyA", 0x61);
+                g_auto_on = !g_auto_on;
+                var b = document.querySelector('#ons_sidebar .ons-side-btn[data-kind="auto"]');
+                if (b) b.classList.toggle("active", g_auto_on);
+            }
+            function center_panel(panel) {
+                var w = panel.offsetWidth, h = panel.offsetHeight;
+                panel.style.left = Math.max(8, Math.round((window.innerWidth - w) / 2)) + "px";
+                panel.style.top = Math.max(8, Math.round((window.innerHeight - h) / 2)) + "px";
+            }
+            function open_menu_centered() {
+                open_panel_centered(build_menu);
+            }
+            function open_panel_centered(viewFn) {
+                var panel = document.getElementById("onsyuri_webrmenu");
+                viewFn();
+                panel.style.display = "block";
+                panel.classList.add("ons-panel-center");
+                center_panel(panel);
+                var fab = get_fab();
+                if (fab) fab.classList.add("open");
+            }
+            function apply_ui_mode(mode) {
+                g_ui_mode = (mode == "fab") ? "fab" : "sidebar";
+                document.body.classList.toggle("ons-mode-sidebar", g_ui_mode == "sidebar");
+                document.body.classList.toggle("ons-mode-fab", g_ui_mode == "fab");
+                var bar = document.getElementById("ons_sidebar");
+                if (bar) bar.style.display = (g_ui_mode == "sidebar") ? "block" : "none";
+                var fab = get_fab();
+                if (fab) fab.style.display = (g_ui_mode == "sidebar") ? "none" : "";
+            }
+            function build_sidebar() {
+                if (document.getElementById("ons_sidebar")) return;
+                var bar = document.createElement("div");
+                bar.id = "ons_sidebar";
+
+                function mkBtn(kind, icon, title) {
+                    var b = document.createElement("button");
+                    b.type = "button";
+                    b.className = "ons-side-btn";
+                    b.title = title;
+                    b.setAttribute("data-kind", kind);
+                    b.innerHTML = ONS_ICONS[icon] || "";
+                    return b;
+                }
+
+                var left = document.createElement("div");
+                left.className = "ons-side left";
+                var right = document.createElement("div");
+                right.className = "ons-side right";
+
+                var bSync = mkBtn("sync", "cloudup", "上传 / 同步存档");
+                bSync.addEventListener("click", function(){ open_panel_centered(show_sync_view); });
+                left.appendChild(bSync);
+
+                var bHold = mkBtn("skip-hold", "runner", "快进（按住生效）");
+                bHold.addEventListener("pointerdown", function(e){
+                    e.preventDefault();
+                    g_skip_hold = true; sync_skip_state();
+                    try { bHold.setPointerCapture(e.pointerId); } catch(err) {}
+                });
+                var hold_end = function(){ if (g_skip_hold) { g_skip_hold = false; sync_skip_state(); } };
+                bHold.addEventListener("pointerup", hold_end);
+                bHold.addEventListener("pointercancel", hold_end);
+                bHold.addEventListener("pointerleave", hold_end);
+                left.appendChild(bHold);
+
+                var bSticky = mkBtn("skip-sticky", "skip", "快进（点击切换）");
+                bSticky.addEventListener("click", function(){
+                    g_skip_sticky = !g_skip_sticky;
+                    sync_skip_state();
+                });
+                left.appendChild(bSticky);
+
+                var bAuto = mkBtn("auto", "play", "自动播放");
+                bAuto.addEventListener("click", toggle_auto);
+                left.appendChild(bAuto);
+
+                var bSettings = mkBtn("settings", "gear", "设置");
+                bSettings.addEventListener("click", open_menu_centered);
+                right.appendChild(bSettings);
+
+                var bMenu = mkBtn("menu", "menu", "菜单 / 返回");
+                bMenu.addEventListener("click", toggle_onsmenu);
+                right.appendChild(bMenu);
+
+                var bUp = mkBtn("lookback-up", "lookback_up", "回看上文 (H)");
+                bUp.addEventListener("click", function(){ tap_key("h", "KeyH", 0x68); });
+                right.appendChild(bUp);
+
+                var bDown = mkBtn("lookback-down", "lookback_down", "回看下文 (L)");
+                bDown.addEventListener("click", function(){ tap_key("l", "KeyL", 0x6c); });
+                right.appendChild(bDown);
+
+                bar.appendChild(left);
+                bar.appendChild(right);
+                document.body.appendChild(bar);
+
+                // 点击画面会取消自动播放（引擎行为），同步按钮状态
+                var canvas = document.getElementById("canvas");
+                canvas.addEventListener("pointerdown", function(){
+                    if (g_auto_on) {
+                        g_auto_on = false;
+                        var b = document.querySelector('#ons_sidebar .ons-side-btn[data-kind="auto"]');
+                        if (b) b.classList.remove("active");
+                    }
+                });
+            }
+            document.addEventListener("DOMContentLoaded", build_sidebar);
 
             // ---- offline cache with a service worker ----
             // 版本号只有一个来源：<meta name="ons_version">，CI 发版时只改这一处
@@ -823,7 +1059,20 @@
                         while(next < list.length) {
                             var p = list[next++];
                             try {
-                                var resp = await fetch(p, {cache: "reload", credentials: "same-origin"});
+                                // 已缓存的文件直接跳过（缓存按版本号隔离，重复执行近乎瞬时）
+                                var hit = await cache.match(p);
+                                if (hit) {
+                                    done++;
+                                    if(done % 20 == 0 || done == list.length)
+                                        toast.textContent = "离线缓存 " + done + "/" + list.length + (failed ? "（失败 " + failed + "）" : "") + " …";
+                                    continue;
+                                }
+                                // X-Ons-Precache 告诉 Service Worker 不要再缓存一次，
+                                // 避免同一文件被写入 Cache Storage 两遍（这曾是主要瓶颈）
+                                var resp = await fetch(p, {
+                                    cache: "reload", credentials: "same-origin",
+                                    headers: {"X-Ons-Precache": "1"}
+                                });
                                 if(resp.status == 200) await cache.put(p, resp);
                                 else failed++;
                             }
@@ -835,7 +1084,7 @@
                         }
                     };
                     var workers = [];
-                    for(var i = 0; i < 6; i++) workers.push(worker());
+                    for(var i = 0; i < 10; i++) workers.push(worker());
                     return Promise.all(workers);
                 }).then(()=>{
                     g_offline_running = false;
@@ -1028,8 +1277,8 @@
                 height: 52px;
                 border: 1px solid rgba(255, 255, 255, .22);
                 border-radius: 18px;
-                background: linear-gradient(135deg, var(--ons-accent), color-mix(in srgb, var(--ons-accent) 45%, #0c4a6e));
-                box-shadow: 0 6px 22px color-mix(in srgb, var(--ons-accent) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, .3);
+                background: linear-gradient(135deg, var(--ons-accent), var(--ons-accent-deep));
+                box-shadow: 0 6px 22px var(--ons-accent-glow), inset 0 1px 0 rgba(255, 255, 255, .3);
                 color: #fff;
                 display: flex;
                 align-items: center;
@@ -1045,7 +1294,7 @@
             #onsyuri_fab:hover {
                 opacity: 1;
                 transform: scale(1.07);
-                box-shadow: 0 8px 28px color-mix(in srgb, var(--ons-accent) 50%, transparent), inset 0 1px 0 rgba(255, 255, 255, .3);
+                box-shadow: 0 8px 28px var(--ons-accent-glow-2), inset 0 1px 0 rgba(255, 255, 255, .3);
             }
 
             #onsyuri_fab:active {
@@ -1117,7 +1366,7 @@
             }
 
             .ons-item:hover {
-                background: color-mix(in srgb, var(--ons-accent) 15%, transparent);
+                background: var(--ons-accent-weak);
                 transform: translateX(2px);
             }
 
@@ -1208,10 +1457,10 @@
 
             .ons-btn-primary {
                 border: 0;
-                background: linear-gradient(135deg, var(--ons-accent), color-mix(in srgb, var(--ons-accent) 45%, #0c4a6e));
+                background: linear-gradient(135deg, var(--ons-accent), var(--ons-accent-deep));
                 color: #fff;
                 font-weight: 600;
-                box-shadow: 0 4px 14px color-mix(in srgb, var(--ons-accent) 30%, transparent);
+                box-shadow: 0 4px 14px var(--ons-accent-glow);
             }
 
             .ons-btn-primary:hover { filter: brightness(1.12); }
@@ -1252,6 +1501,75 @@
             .ons-toast.error { border-color: rgba(248, 113, 113, .55); }
             .ons-toast.info { border-color: rgba(56, 189, 248, .55); }
             .ons-toast.warning { border-color: rgba(251, 191, 36, .55); }
+
+            /* ---- sidebar（侧边栏控制，WebView 兼容） ---- */
+            #ons_sidebar {
+                position: fixed;
+                inset: 0;
+                z-index: 1000;
+                pointer-events: none;
+                font-family: var(--ons-font);
+            }
+            #ons_sidebar .ons-side {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 76px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8vh 0 10vh;
+            }
+            #ons_sidebar .ons-side.left { left: 0; }
+            #ons_sidebar .ons-side.right { right: 0; }
+            #ons_sidebar .ons-side-btn {
+                pointer-events: auto;
+                width: 56px;
+                height: 56px;
+                padding: 0;
+                border: 0;
+                border-radius: 16px;
+                background: transparent;
+                color: var(--ons-side-btn, #fff);
+                opacity: var(--ons-side-alpha, .78);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+                transition: opacity .12s ease, transform .12s ease, color .12s ease;
+            }
+            #ons_sidebar .ons-side-btn svg { width: 34px; height: 34px; }
+            #ons_sidebar .ons-side-btn:active { transform: scale(.9); }
+            #ons_sidebar .ons-side-btn.active { color: var(--ons-side-active, #ff6fb1); opacity: 1; }
+
+            body.ons-mode-sidebar #onsyuri_fab { display: none !important; }
+            body.ons-mode-fab #ons_sidebar { display: none !important; }
+
+            .ons-panel-center {
+                transform: none !important;
+            }
+
+            .ons-seg { display: flex; gap: 6px; margin: 2px 4px 8px; }
+            .ons-seg-btn {
+                flex: 1;
+                padding: 7px 10px;
+                border-radius: 9px;
+                border: 1px solid var(--ons-border);
+                background: transparent;
+                color: var(--ons-muted);
+                font: inherit;
+                font-size: 12.5px;
+                cursor: pointer;
+            }
+            .ons-seg-btn.active {
+                background: var(--ons-accent-weak);
+                border-color: var(--ons-accent);
+                color: var(--ons-text);
+            }
+
         </style>
         
         <div id="onsyuri_webinfo">
