@@ -554,7 +554,8 @@
             const ONS_THEME_DEFAULT = {
                 color: "#38bdf8", fabAlpha: 0.92, panelAlpha: 0.82,
                 mode: "sidebar", sideAlpha: 0.78,
-                btnColor: "#ffffff", activeColor: "#ff6fb1"
+                btnColor: "#ffffff", activeColor: "#ff6fb1",
+                autoHide: false
             };
 
             function ons_hex_rgb(hex) {
@@ -625,75 +626,56 @@
             function show_theme_view() {
                 var theme = theme_load();
                 var panel = document.getElementById("onsyuri_webrmenu");
-                var modeSide = theme.mode != "fab";
                 panel.innerHTML =
                     '<div class="ons-group">' +
-                        '<div class="ons-label">界面</div>' +
-                        '<div class="ons-seg" id="ons_mode_seg">' +
-                            '<button class="ons-seg-btn' + (modeSide ? ' active' : '') + '" data-mode="sidebar">侧边栏</button>' +
-                            '<button class="ons-seg-btn' + (modeSide ? '' : ' active') + '" data-mode="fab">悬浮球</button>' +
-                        '</div>' +
-                        '<div class="ons-label">外观设置</div>' +
+                        '<div class="ons-label">悬浮球外观</div>' +
                         '<div class="ons-field"><span>主色调</span>' +
                         '<input id="ons_theme_color" class="ons-color" type="color" value="' + theme.color + '"></div>' +
-                        '<div class="ons-field"><span>按键颜色</span>' +
-                        '<input id="ons_theme_btn" class="ons-color" type="color" value="' + theme.btnColor + '"></div>' +
-                        '<div class="ons-field"><span>触发后按键颜色</span>' +
-                        '<input id="ons_theme_active" class="ons-color" type="color" value="' + theme.activeColor + '"></div>' +
-                        '<div class="ons-field"><span>侧边栏透明度 <b id="ons_side_alpha_val">' + Math.round(theme.sideAlpha*100) + '%</b></span>' +
-                        '<input id="ons_theme_side" class="ons-range" type="range" min="10" max="100" step="1" value="' + Math.round(theme.sideAlpha*100) + '"></div>' +
                         '<div class="ons-field"><span>悬浮球透明度 <b id="ons_fab_alpha_val">' + Math.round(theme.fabAlpha*100) + '%</b></span>' +
                         '<input id="ons_theme_fab" class="ons-range" type="range" min="30" max="100" step="1" value="' + Math.round(theme.fabAlpha*100) + '"></div>' +
                         '<div class="ons-field"><span>面板透明度 <b id="ons_panel_alpha_val">' + Math.round(theme.panelAlpha*100) + '%</b></span>' +
                         '<input id="ons_theme_panel" class="ons-range" type="range" min="30" max="100" step="1" value="' + Math.round(theme.panelAlpha*100) + '"></div>' +
                         '<div class="ons-row">' +
                         '<button class="ons-btn ons-btn-ghost" id="ons_theme_reset">' + ONS_ICONS.sync + '<span>恢复默认</span></button>' +
-                        '<button class="ons-btn ons-btn-ghost" id="ons_cache_clear">' + ONS_ICONS.trash + '<span>清空缓存</span></button>' +
                         '</div>' +
+                        '<button class="ons-item" id="ons_theme_to_side">' + ONS_ICONS.stretch + '<span>切换到侧边栏菜单</span></button>' +
                         '<button class="ons-item" id="ons_theme_back">' + ONS_ICONS.back + '<span>返回</span></button>' +
                     '</div>';
-                var segBtns = document.querySelectorAll("#ons_mode_seg .ons-seg-btn");
-                function current() {
-                    var mode = "sidebar";
-                    for (var i = 0; i < segBtns.length; i++)
-                        if (segBtns[i].classList.contains("active")) mode = segBtns[i].getAttribute("data-mode");
-                    return {
-                        color: document.getElementById("ons_theme_color").value,
-                        btnColor: document.getElementById("ons_theme_btn").value,
-                        activeColor: document.getElementById("ons_theme_active").value,
-                        sideAlpha: document.getElementById("ons_theme_side").value/100,
-                        fabAlpha: document.getElementById("ons_theme_fab").value/100,
-                        panelAlpha: document.getElementById("ons_theme_panel").value/100,
-                        mode: mode
-                    };
-                }
-                function apply() {
-                    var t = current();
+                function save_view(mut) {
+                    var t = theme_load(), k;
+                    for (k in mut) t[k] = mut[k];
                     apply_theme(t);
-                    document.getElementById("ons_side_alpha_val").textContent = Math.round(t.sideAlpha*100) + "%";
-                    document.getElementById("ons_fab_alpha_val").textContent = Math.round(t.fabAlpha*100) + "%";
-                    document.getElementById("ons_panel_alpha_val").textContent = Math.round(t.panelAlpha*100) + "%";
                     theme_save(t);
                 }
-                ["ons_theme_color","ons_theme_btn","ons_theme_active"].forEach(function(id){
-                    document.getElementById(id).addEventListener("input", apply);
-                });
-                ["ons_theme_side","ons_theme_fab","ons_theme_panel"].forEach(function(id){
-                    document.getElementById(id).addEventListener("input", apply);
-                });
-                for (var i = 0; i < segBtns.length; i++) {
-                    segBtns[i].addEventListener("click", function(){
-                        for (var j = 0; j < segBtns.length; j++) segBtns[j].classList.remove("active");
-                        this.classList.add("active");
-                        apply();
-                    });
+                function refresh_labels() {
+                    document.getElementById("ons_fab_alpha_val").textContent =
+                        Math.round(document.getElementById("ons_theme_fab").value) + "%";
+                    document.getElementById("ons_panel_alpha_val").textContent =
+                        Math.round(document.getElementById("ons_theme_panel").value) + "%";
                 }
-                document.getElementById("ons_theme_reset").addEventListener("click", function(){
-                    localStorage.removeItem(ONS_THEME_KEY);
-                    apply_theme(ONS_THEME_DEFAULT);
+                document.getElementById("ons_theme_color").addEventListener("input", function () {
+                    save_view({color: this.value});
+                });
+                document.getElementById("ons_theme_fab").addEventListener("input", function () {
+                    save_view({fabAlpha: this.value / 100});
+                    refresh_labels();
+                });
+                document.getElementById("ons_theme_panel").addEventListener("input", function () {
+                    save_view({panelAlpha: this.value / 100});
+                    refresh_labels();
+                });
+                document.getElementById("ons_theme_reset").addEventListener("click", function () {
+                    save_view({
+                        color: ONS_THEME_DEFAULT.color,
+                        fabAlpha: ONS_THEME_DEFAULT.fabAlpha,
+                        panelAlpha: ONS_THEME_DEFAULT.panelAlpha
+                    });
                     show_theme_view();
                 });
-                document.getElementById("ons_cache_clear").addEventListener("click", clear_site_cache);
+                document.getElementById("ons_theme_to_side").addEventListener("click", function () {
+                    save_view({mode: "sidebar"});
+                    hide_webmenu();
+                });
                 document.getElementById("ons_theme_back").addEventListener("click", build_menu);
             }
 
@@ -973,7 +955,7 @@
                 right.className = "ons-side right";
 
                 var bSync = mkBtn("sync", "upload", "上传 / 同步存档");
-                bSync.addEventListener("click", function(){ open_panel_centered(show_sync_view); });
+                bSync.addEventListener("click", function(){ open_side_settings("sync"); });
                 left.appendChild(bSync);
 
                 var bHold = mkBtn("skip-hold", "runner", "快进（按住生效）");
@@ -1000,7 +982,7 @@
                 left.appendChild(bAuto);
 
                 var bSettings = mkBtn("settings", "gear", "设置");
-                bSettings.addEventListener("click", open_menu_centered);
+                bSettings.addEventListener("click", function(){ open_side_settings("main"); });
                 right.appendChild(bSettings);
 
                 var bMenu = mkBtn("menu", "menu", "菜单 / 返回");
@@ -1613,6 +1595,146 @@
                 color: var(--ons-text);
             }
 
+            /* ---- 侧边栏设置对话框（浅色，按参考图） ---- */
+            #ons_dlg {
+                position: fixed;
+                inset: 0;
+                z-index: 1200;
+                display: none;
+                background: rgba(0, 0, 0, .38);
+                font-family: var(--ons-font);
+            }
+            #ons_dlg.open { display: block; }
+            .ons-dlg-card::-webkit-scrollbar { width: 0; height: 0; }
+            .ons-dlg-card {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: min(520px, 92vw);
+                max-height: 88vh;
+                overflow-y: auto;
+                background: #fff;
+                color: #1f2328;
+                box-shadow: 0 20px 64px rgba(0, 0, 0, .45);
+            }
+            .ons-dlg-title {
+                font-size: 24px;
+                font-weight: 700;
+                padding: 26px 26px 4px;
+                letter-spacing: .5px;
+            }
+            .ons-dlg-body { padding: 0 26px 6px; }
+            .ons-dlg-sec { color: #2e7ae5; font-size: 14px; margin: 20px 0 8px; }
+            .ons-dlg-row { padding: 10px 0; border-bottom: 1px solid #ededed; }
+            .ons-dlg-row:last-child { border-bottom: 0; }
+            .ons-dlg-label {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 14px;
+                font-size: 16px;
+            }
+            .ons-dlg-desc {
+                font-size: 12px;
+                color: #8a8f98;
+                line-height: 1.55;
+                margin-top: 5px;
+            }
+            .ons-dlg-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 0;
+                border-bottom: 1px solid #ededed;
+                font-size: 16px;
+                cursor: pointer;
+            }
+            .ons-dlg-item:last-child { border-bottom: 0; }
+            .ons-dlg-arrow { color: #b9bec6; font-size: 18px; }
+            .ons-dlg-swatch {
+                width: 44px;
+                height: 28px;
+                padding: 0;
+                border: 1px solid #d9dce1;
+                border-radius: 6px;
+                background: #fff;
+                flex: none;
+            }
+            .ons-dlg-range { width: 100%; margin: 10px 0 2px; accent-color: #2e7ae5; }
+            .ons-dlg-input {
+                width: 100%;
+                box-sizing: border-box;
+                margin-top: 8px;
+                padding: 10px 12px;
+                font-size: 15px;
+                color: #1f2328;
+                background: #f6f7f9;
+                border: 1px solid #e3e6ea;
+                border-radius: 8px;
+            }
+            .ons-dlg-btns { display: flex; gap: 10px; margin: 16px 0 4px; }
+            .ons-dlg-btns button {
+                flex: 1;
+                padding: 11px 0;
+                border-radius: 8px;
+                font-size: 15px;
+                border: 1px solid #dfe3e8;
+                background: #fff;
+                color: #1f2328;
+            }
+            .ons-dlg-btns .primary { background: #2e7ae5; border-color: #2e7ae5; color: #fff; }
+            .ons-dlg-foot { display: flex; justify-content: flex-end; padding: 12px 26px 22px; }
+            .ons-dlg-cancel {
+                border: 0;
+                background: transparent;
+                color: #e5484d;
+                font-size: 16px;
+                padding: 8px 12px;
+                cursor: pointer;
+            }
+            .ons-dlg-link { color: #2e7ae5; text-decoration: none; }
+            .ons-switch { position: relative; width: 46px; height: 26px; flex: none; }
+            .ons-switch input {
+                position: absolute;
+                inset: 0;
+                opacity: 0;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+            }
+            .ons-switch span {
+                position: absolute;
+                inset: 0;
+                border-radius: 13px;
+                background: #d9dce1;
+                transition: background .18s ease;
+            }
+            .ons-switch span:after {
+                content: "";
+                position: absolute;
+                top: 3px;
+                left: 3px;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+                transition: left .18s ease;
+            }
+            .ons-switch input:checked + span { background: #2e7ae5; }
+            .ons-switch input:checked + span:after { left: 23px; }
+
+            /* 自动隐藏：平时收起，靠近屏幕左右边缘时呼出 */
+            body.ons-side-autohide #ons_sidebar .ons-side-btn {
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+            body.ons-side-autohide #ons_sidebar.show .ons-side-btn {
+                opacity: var(--ons-side-alpha, .78) !important;
+                pointer-events: auto !important;
+            }
+
         </style>
         
         <div id="onsyuri_webinfo">
@@ -1629,5 +1751,213 @@
         </div>
 
         <div id="onsyuri_webrmenu" style="display: none;"></div>
+        <div id="ons_dlg"></div>
+
+        <script>
+        // 侧边栏专用菜单：浅色居中弹窗（不可拖动，点外部/取消关闭）
+        (function () {
+            var DLG = "ons_dlg";
+            var g_view = "main";
+            var g_auto_hide = false;
+            var g_hide_timer = null;
+
+            function el(id) { return document.getElementById(id); }
+            function esc(v) {
+                return String(v == null ? "" : v)
+                    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+            }
+            function dlg() {
+                var d = el(DLG);
+                if (!d) {
+                    d = document.createElement("div");
+                    d.id = DLG;
+                    document.body.appendChild(d);
+                }
+                if (!d.__onsCloseBound) {
+                    d.__onsCloseBound = true;
+                    d.addEventListener("pointerdown", function (e) {
+                        if (e.target === d) close_side_settings();
+                    });
+                }
+                return d;
+            }
+            function save_theme(mut) {
+                var t = theme_load(), k;
+                for (k in mut) t[k] = mut[k];
+                apply_theme(t);
+                theme_save(t);
+                return t;
+            }
+            function sw(id, on) {
+                return '<label class="ons-switch"><input type="checkbox" id="' + id + '"' +
+                    (on ? " checked" : "") + '><span></span></label>';
+            }
+            function item(id, label) {
+                return '<div class="ons-dlg-item" id="' + id + '"><span>' + label +
+                    '</span><span class="ons-dlg-arrow">›</span></div>';
+            }
+            function card(title, body, back) {
+                return '<div class="ons-dlg-card">' +
+                    '<div class="ons-dlg-title">' + title + '</div>' +
+                    '<div class="ons-dlg-body">' + body + '</div>' +
+                    '<div class="ons-dlg-foot"><button class="ons-dlg-cancel" id="ons_dlg_cancel">' +
+                    (back ? "返回" : "取消") + '</button></div>' +
+                    '</div>';
+            }
+
+            function card_main() {
+                var t = theme_load();
+                var alpha = Math.round(t.sideAlpha * 100);
+                return card("设置",
+                    '<div class="ons-dlg-sec">控制按键</div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>自动隐藏</span>' +
+                        sw("ons_dlg_autohide", !!t.autoHide) + '</div>' +
+                        '<div class="ons-dlg-desc">自动隐藏两侧的控制按键，在界面左侧或右侧滑动时暂时呼出（注：可能对部分使用全面屏手势的设备不生效）</div></div>' +
+                    '<div class="ons-dlg-sec">侧边栏外观</div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>按键颜色</span>' +
+                        '<input id="ons_dlg_btn" class="ons-dlg-swatch" type="color" value="' + t.btnColor + '"></div></div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>触发后按键颜色</span>' +
+                        '<input id="ons_dlg_active" class="ons-dlg-swatch" type="color" value="' + t.activeColor + '"></div></div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>透明度 <b id="ons_dlg_alpha_val">' + alpha + '%</b></span></div>' +
+                        '<input id="ons_dlg_alpha" class="ons-dlg-range" type="range" min="10" max="100" step="1" value="' + alpha + '"></div>' +
+                    '<div class="ons-dlg-sec">存档</div>' +
+                    item("ons_dlg_sync", "云同步存档") +
+                    '<div class="ons-dlg-sec">其他</div>' +
+                    item("ons_dlg_about", "关于") +
+                    item("ons_dlg_clear", "清空缓存并刷新") +
+                    item("ons_dlg_to_fab", "切换到悬浮球菜单") +
+                    '');
+            }
+
+            function card_sync() {
+                var server = localStorage.getItem("onsyuri_sync_server") || "";
+                var slot = localStorage.getItem("onsyuri_sync_slot") || "";
+                return card("云同步存档",
+                    '<div class="ons-dlg-sec">连接</div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>服务器链接</span></div>' +
+                        '<input id="ons_dlg_server" class="ons-dlg-input" spellcheck="false" placeholder="http://192.168.1.10:8765" value="' + esc(server) + '"></div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>存档码</span></div>' +
+                        '<input id="ons_dlg_slot" class="ons-dlg-input" spellcheck="false" placeholder="给这份存档起个名字" value="' + esc(slot) + '"></div>' +
+                    '<div class="ons-dlg-btns">' +
+                        '<button class="primary" id="ons_dlg_up">上传</button>' +
+                        '<button id="ons_dlg_down">恢复</button></div>',
+                    true);
+            }
+
+            function card_about() {
+                return card("关于",
+                    '<div class="ons-dlg-sec">版本</div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>OnscripterShiki</span><span id="ons_dlg_ver">' +
+                        esc(ONS_VERSION) + '</span></div>' +
+                        '<div class="ons-dlg-desc">网页版 ONScripter 引擎，存档保存在浏览器 IndexedDB 中。</div></div>' +
+                    '<div class="ons-dlg-sec">快捷键</div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-desc">' +
+                        '右键 / ☰：游戏菜单　·　A：自动播放　·　H / L：回看文本　·　Ctrl：快进' +
+                    '</div></div>' +
+                    '<div class="ons-dlg-sec">链接</div>' +
+                    '<div class="ons-dlg-row"><a class="ons-dlg-link" href="https://github.com/GJMJimmy/OnscripterShiki" target="_blank" rel="noopener">GitHub 项目主页</a></div>',
+                    true);
+            }
+
+            function bind() {
+                var c = el("ons_dlg_cancel");
+                if (c) c.addEventListener("click", function () {
+                    if (g_view === "main") close_side_settings();
+                    else open_side_settings("main");
+                });
+
+                if (g_view === "main") {
+                    el("ons_dlg_autohide").addEventListener("change", function () {
+                        save_theme({autoHide: this.checked});
+                        apply_auto_hide(this.checked);
+                    });
+                    el("ons_dlg_btn").addEventListener("input", function () {
+                        save_theme({btnColor: this.value});
+                    });
+                    el("ons_dlg_active").addEventListener("input", function () {
+                        save_theme({activeColor: this.value});
+                    });
+                    var range = el("ons_dlg_alpha");
+                    range.addEventListener("input", function () {
+                        el("ons_dlg_alpha_val").textContent = this.value + "%";
+                        save_theme({sideAlpha: this.value / 100});
+                    });
+                    el("ons_dlg_sync").addEventListener("click", function () { open_side_settings("sync"); });
+                    el("ons_dlg_about").addEventListener("click", function () { open_side_settings("about"); });
+                    el("ons_dlg_clear").addEventListener("click", function () { clear_site_cache(); });
+                    el("ons_dlg_to_fab").addEventListener("click", function () {
+                        save_theme({mode: "fab"});
+                        close_side_settings();
+                    });
+                }
+                else if (g_view === "sync") {
+                    el("ons_dlg_up").addEventListener("click", function () { sync_action("upload"); });
+                    el("ons_dlg_down").addEventListener("click", function () { sync_action("download"); });
+                }
+            }
+
+            function sync_action(mode) {
+                var server = el("ons_dlg_server").value.trim().replace(/\/+$/, "");
+                var slot = el("ons_dlg_slot").value.trim();
+                if (server === "") { show_toast("请先填写服务器链接", "warning"); return; }
+                if (slot === "") { show_toast("请先输入存档码", "warning"); return; }
+                localStorage.setItem("onsyuri_sync_server", server);
+                localStorage.setItem("onsyuri_sync_slot", slot);
+                close_side_settings();
+                if (mode === "upload") do_upload(server, slot);
+                else do_download(server, slot);
+            }
+
+            function open_side_settings(view) {
+                if (g_ui_mode !== "sidebar") { open_menu_centered(); return; }
+                g_view = view || "main";
+                var d = dlg();
+                d.innerHTML = g_view === "sync" ? card_sync() :
+                              g_view === "about" ? card_about() : card_main();
+                d.classList.add("open");
+                bind();
+            }
+            function close_side_settings() {
+                var d = el(DLG);
+                if (d) d.classList.remove("open");
+            }
+
+            function reveal_sides() {
+                var bar = el("ons_sidebar");
+                if (!bar || !g_auto_hide) return;
+                bar.classList.add("show");
+                clearTimeout(g_hide_timer);
+                g_hide_timer = setTimeout(function () { bar.classList.remove("show"); }, 2600);
+            }
+            function apply_auto_hide(on) {
+                g_auto_hide = !!on;
+                document.body.classList.toggle("ons-side-autohide", g_auto_hide);
+                var bar = el("ons_sidebar");
+                if (!bar) return;
+                if (!g_auto_hide) bar.classList.remove("show");
+                else reveal_sides();
+            }
+
+            document.addEventListener("pointermove", function (e) {
+                if (!g_auto_hide) return;
+                if (e.clientX < 64 || e.clientX > window.innerWidth - 64) reveal_sides();
+            }, {passive: true});
+            document.addEventListener("pointerdown", function (e) {
+                if (!g_auto_hide) return;
+                if (e.clientX < 64 || e.clientX > window.innerWidth - 64) reveal_sides();
+            }, {passive: true});
+
+            window.open_side_settings = open_side_settings;
+            window.close_side_settings = close_side_settings;
+            window.apply_auto_hide = apply_auto_hide;
+
+            document.addEventListener("DOMContentLoaded", function () {
+                var t = theme_load();
+                apply_auto_hide(!!t.autoHide);
+            });
+        })();
+        </script>
+
     </body>
 </html>
