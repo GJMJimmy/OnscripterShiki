@@ -584,6 +584,7 @@
                 root.setProperty("--ons-side-alpha", String(theme.sideAlpha));
                 root.setProperty("--ons-side-btn", theme.btnColor);
                 root.setProperty("--ons-side-active", theme.activeColor);
+                root.setProperty("--ons-dlg-accent", theme.activeColor);
                 root.setProperty("--ons-accent-deep", ons_shade(theme.color, .45));
                 root.setProperty("--ons-accent-weak", ons_rgba(theme.color, .15));
                 root.setProperty("--ons-accent-glow", ons_rgba(theme.color, .35));
@@ -1606,7 +1607,7 @@
                 left: 50%;
                 top: 50%;
                 transform: translate(-50%, -50%);
-                width: min(520px, 92vw);
+                width: min(660px, 94vw);
                 max-height: 88vh;
                 display: flex;
                 flex-direction: column;
@@ -1630,7 +1631,7 @@
                 min-height: 0;
             }
             .ons-dlg-body::-webkit-scrollbar { width: 0; height: 0; }
-            .ons-dlg-sec { color: #2e7ae5; font-size: 14px; margin: 20px 0 8px; }
+            .ons-dlg-sec { color: var(--ons-dlg-accent, #2e7ae5); font-size: 14px; margin: 20px 0 8px; }
             .ons-dlg-row { padding: 10px 0; border-bottom: 1px solid #ededed; }
             .ons-dlg-row:last-child { border-bottom: 0; }
             .ons-dlg-label {
@@ -1666,7 +1667,7 @@
                 background: #fff;
                 flex: none;
             }
-            .ons-dlg-range { width: 100%; margin: 10px 0 2px; accent-color: #2e7ae5; }
+            .ons-dlg-range { width: 100%; margin: 10px 0 2px; accent-color: var(--ons-dlg-accent, #2e7ae5); }
             .ons-dlg-input {
                 width: 100%;
                 box-sizing: border-box;
