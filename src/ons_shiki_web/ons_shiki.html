@@ -638,7 +638,6 @@
                         '<div class="ons-row">' +
                         '<button class="ons-btn ons-btn-ghost" id="ons_theme_reset">' + ONS_ICONS.sync + '<span>恢复默认</span></button>' +
                         '</div>' +
-                        '<button class="ons-item" id="ons_theme_to_side">' + ONS_ICONS.stretch + '<span>切换到侧边栏菜单</span></button>' +
                         '<button class="ons-item" id="ons_theme_back">' + ONS_ICONS.back + '<span>返回</span></button>' +
                     '</div>';
                 function save_view(mut) {
@@ -671,10 +670,6 @@
                         panelAlpha: ONS_THEME_DEFAULT.panelAlpha
                     });
                     show_theme_view();
-                });
-                document.getElementById("ons_theme_to_side").addEventListener("click", function () {
-                    save_view({mode: "sidebar"});
-                    hide_webmenu();
                 });
                 document.getElementById("ons_theme_back").addEventListener("click", build_menu);
             }
@@ -759,6 +754,7 @@
                         {icon: "stretch", label: "拉伸全屏", badge: "F10", onclick: toggle_stretchfull},
                         {icon: "full", label: "全屏", badge: "F11", onclick: toggle_screenfull},
                         {icon: "about", label: "关于", badge: "F2", onclick: toggle_webinfo},
+                        {icon: "stretch", label: "切换到侧边栏菜单", onclick: switch_to_sidebar_menu},
                         {icon: "close", label: "关闭面板", badge: "F9", onclick: toggle_webmenu},
                     ]},
                 ];
@@ -1605,7 +1601,6 @@
                 font-family: var(--ons-font);
             }
             #ons_dlg.open { display: block; }
-            .ons-dlg-card::-webkit-scrollbar { width: 0; height: 0; }
             .ons-dlg-card {
                 position: absolute;
                 left: 50%;
@@ -1613,18 +1608,28 @@
                 transform: translate(-50%, -50%);
                 width: min(520px, 92vw);
                 max-height: 88vh;
-                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
                 background: #fff;
                 color: #1f2328;
                 box-shadow: 0 20px 64px rgba(0, 0, 0, .45);
             }
+            .ons-dlg-card::-webkit-scrollbar { width: 0; height: 0; }
             .ons-dlg-title {
                 font-size: 24px;
                 font-weight: 700;
                 padding: 26px 26px 4px;
                 letter-spacing: .5px;
             }
-            .ons-dlg-body { padding: 0 26px 6px; }
+            .ons-dlg-body {
+                padding: 0 26px 6px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                flex: 1 1 auto;
+                min-height: 0;
+            }
+            .ons-dlg-body::-webkit-scrollbar { width: 0; height: 0; }
             .ons-dlg-sec { color: #2e7ae5; font-size: 14px; margin: 20px 0 8px; }
             .ons-dlg-row { padding: 10px 0; border-bottom: 1px solid #ededed; }
             .ons-dlg-row:last-child { border-bottom: 0; }
@@ -1684,7 +1689,14 @@
                 color: #1f2328;
             }
             .ons-dlg-btns .primary { background: #2e7ae5; border-color: #2e7ae5; color: #fff; }
-            .ons-dlg-foot { display: flex; justify-content: flex-end; padding: 12px 26px 22px; }
+            .ons-dlg-foot {
+                display: flex;
+                justify-content: flex-end;
+                padding: 10px 26px;
+                flex: none;
+                border-top: 1px solid #ededed;
+                background: #fff;
+            }
             .ons-dlg-cancel {
                 border: 0;
                 background: transparent;
@@ -1823,6 +1835,9 @@
                         '<input id="ons_dlg_alpha" class="ons-dlg-range" type="range" min="10" max="100" step="1" value="' + alpha + '"></div>' +
                     '<div class="ons-dlg-sec">存档</div>' +
                     item("ons_dlg_sync", "云同步存档") +
+                    '<div class="ons-dlg-sec">离线</div>' +
+                    item("ons_dlg_cache_all", "缓存全部资源") +
+                    item("ons_dlg_cache_clear", "清除离线缓存") +
                     '<div class="ons-dlg-sec">其他</div>' +
                     item("ons_dlg_about", "关于") +
                     item("ons_dlg_clear", "清空缓存并刷新") +
@@ -1886,6 +1901,14 @@
                     el("ons_dlg_sync").addEventListener("click", function () { open_side_settings("sync"); });
                     el("ons_dlg_about").addEventListener("click", function () { open_side_settings("about"); });
                     el("ons_dlg_clear").addEventListener("click", function () { clear_site_cache(); });
+                    el("ons_dlg_cache_all").addEventListener("click", function () {
+                        close_side_settings();
+                        offline_precache();
+                    });
+                    el("ons_dlg_cache_clear").addEventListener("click", function () {
+                        close_side_settings();
+                        offline_clear();
+                    });
                     el("ons_dlg_to_fab").addEventListener("click", function () {
                         save_theme({mode: "fab"});
                         close_side_settings();
@@ -1948,6 +1971,11 @@
                 if (e.clientX < 64 || e.clientX > window.innerWidth - 64) reveal_sides();
             }, {passive: true});
 
+            window.switch_to_sidebar_menu = function () {
+                save_theme({mode: "sidebar"});
+                close_side_settings();
+                hide_webmenu();
+            };
             window.open_side_settings = open_side_settings;
             window.close_side_settings = close_side_settings;
             window.apply_auto_hide = apply_auto_hide;
