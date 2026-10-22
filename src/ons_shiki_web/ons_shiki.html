@@ -1711,6 +1711,10 @@
                 border: 1px solid #e3e6ea;
                 border-radius: 8px;
             }
+            .ons-dlg-input:focus {
+                outline: none;
+                border-color: var(--ons-dlg-accent, #2e7ae5);
+            }
             .ons-dlg-btns { display: flex; gap: 10px; margin: 16px 0 4px; }
             .ons-dlg-btns button {
                 flex: 1;
@@ -1721,7 +1725,11 @@
                 background: #fff;
                 color: #1f2328;
             }
-            .ons-dlg-btns .primary { background: #2e7ae5; border-color: #2e7ae5; color: #fff; }
+            .ons-dlg-btns .primary {
+                background: var(--ons-dlg-accent, #2e7ae5);
+                border-color: var(--ons-dlg-accent, #2e7ae5);
+                color: #fff;
+            }
             .ons-dlg-foot {
                 display: flex;
                 justify-content: flex-end;
@@ -1738,7 +1746,7 @@
                 padding: 8px 12px;
                 cursor: pointer;
             }
-            .ons-dlg-link { color: #2e7ae5; text-decoration: none; }
+            .ons-dlg-link { color: var(--ons-dlg-accent, #2e7ae5); text-decoration: none; }
             .ons-switch { position: relative; width: 46px; height: 26px; flex: none; }
             .ons-switch input {
                 position: absolute;
@@ -1767,7 +1775,7 @@
                 box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
                 transition: left .18s ease;
             }
-            .ons-switch input:checked + span { background: #2e7ae5; }
+            .ons-switch input:checked + span { background: var(--ons-dlg-accent, #2e7ae5); }
             .ons-switch input:checked + span:after { left: 23px; }
 
             /* 自动隐藏：平时收起，靠近屏幕左右边缘时呼出 */
