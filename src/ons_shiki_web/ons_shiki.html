@@ -881,10 +881,22 @@
 
             function canvas_key(type, key, code, keyCode) {
                 var canvas = document.getElementById("canvas");
-                canvas.dispatchEvent(new KeyboardEvent(type, {
-                    bubbles: true, cancelable: true, key: key, code: code,
-                    keyCode: keyCode, which: keyCode
-                }));
+                // 注意：new KeyboardEvent(..., {keyCode}) 会忽略 keyCode（只读），
+                // Emscripten 取的是 e.keyCode / e.which，必须自己定义可读属性
+                var ev;
+                try {
+                    ev = new KeyboardEvent(type, {bubbles: true, cancelable: true, key: key, code: code});
+                }
+                catch(err) {
+                    ev = document.createEvent("Event");
+                    ev.initEvent(type, true, true);
+                    ev.key = key;
+                    ev.code = code;
+                }
+                Object.defineProperty(ev, "keyCode", {get: function(){ return keyCode; }});
+                Object.defineProperty(ev, "which", {get: function(){ return keyCode; }});
+                Object.defineProperty(ev, "charCode", {get: function(){ return 0; }});
+                canvas.dispatchEvent(ev);
             }
             function tap_key(key, code, keyCode) {
                 canvas_key("keydown", key, code, keyCode);
@@ -902,7 +914,7 @@
                 if (h) h.classList.toggle("active", g_skip_hold);
             }
             function toggle_auto() {
-                tap_key("a", "KeyA", 0x61);
+                tap_key("a", "KeyA", 65);
                 g_auto_on = !g_auto_on;
                 var b = document.querySelector('#ons_sidebar .ons-side-btn[data-kind="auto"]');
                 if (b) b.classList.toggle("active", g_auto_on);
@@ -996,11 +1008,11 @@
                 right.appendChild(bMenu);
 
                 var bUp = mkBtn("lookback-up", "back_up", "回看上文 (H)");
-                bUp.addEventListener("click", function(){ tap_key("h", "KeyH", 0x68); });
+                bUp.addEventListener("click", function(){ tap_key("h", "KeyH", 72); });
                 right.appendChild(bUp);
 
                 var bDown = mkBtn("lookback-down", "back_dn", "回看下文 (L)");
-                bDown.addEventListener("click", function(){ tap_key("l", "KeyL", 0x6c); });
+                bDown.addEventListener("click", function(){ tap_key("l", "KeyL", 76); });
                 right.appendChild(bDown);
 
                 bar.appendChild(left);
