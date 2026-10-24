@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="color-scheme" content="light">
         <meta charset="utf-8">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <meta onsyuri_js="onsyuri.js">
@@ -435,13 +436,17 @@
             }
 
             function fab_default_pos(fab) {
-                return {left: window.innerWidth - fab.offsetWidth - 16, top: 16};
+                // 侧边栏模式下 fab 隐藏，offsetWidth 为 0，用默认尺寸兜底
+                var w = fab.offsetWidth || 52;
+                return {left: window.innerWidth - w - 16, top: 16};
             }
 
             function fab_clamp_pos(pos) {
                 var fab = get_fab();
-                pos.left = Math.max(0, Math.min(pos.left, window.innerWidth - fab.offsetWidth));
-                pos.top  = Math.max(0, Math.min(pos.top,  window.innerHeight - fab.offsetHeight));
+                // 侧边栏模式下 fab 是 display:none，offsetWidth 为 0，必须给默认尺寸
+                var w = fab.offsetWidth || 52, hgt = fab.offsetHeight || 52;
+                pos.left = Math.max(0, Math.min(pos.left, window.innerWidth - w));
+                pos.top  = Math.max(0, Math.min(pos.top,  window.innerHeight - hgt));
                 return pos;
             }
 
@@ -922,7 +927,20 @@
                 var bar = document.getElementById("ons_sidebar");
                 if (bar) bar.style.display = (g_ui_mode == "sidebar") ? "block" : "none";
                 var fab = get_fab();
-                if (fab) fab.style.display = (g_ui_mode == "sidebar") ? "none" : "";
+                if (fab) {
+                    var showing = g_ui_mode != "sidebar";
+                    fab.style.display = showing ? "" : "none";
+                    if (showing) {
+                        // 从侧边栏切回来时重新夹取一次，避免沿用隐藏期间的坐标飞到屏幕外
+                        var place = function () {
+                            var pos = g_fab_pos || fab_default_pos(fab);
+                            g_fab_pos = fab_clamp_pos({left: pos.left, top: pos.top});
+                            fab_apply_pos();
+                        };
+                        place();
+                        requestAnimationFrame(place);
+                    }
+                }
             }
             function build_sidebar() {
                 if (document.getElementById("ons_sidebar")) return;
@@ -1228,6 +1246,7 @@
 
         <style>
             :root {
+                color-scheme: only light;
                 --ons-text: #eaf1f7;
                 --ons-muted: rgba(234, 241, 247, .55);
                 --ons-border: rgba(255, 255, 255, .09);
@@ -1552,6 +1571,9 @@
                 transition: opacity .12s ease, transform .12s ease, color .12s ease;
             }
             #ons_sidebar .ons-side-btn svg { width: 34px; height: 34px; }
+            #ons_sidebar .ons-side-btn {
+                filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55));
+            }
             #ons_sidebar .ons-side-ico {
                 width: 40px;
                 height: 40px;
@@ -1658,6 +1680,16 @@
             }
             .ons-dlg-item:last-child { border-bottom: 0; }
             .ons-dlg-arrow { color: #b9bec6; font-size: 18px; }
+            .ons-dlg-mini {
+                border: 1px solid #dfe3e8;
+                background: #fff;
+                color: #1f2328;
+                border-radius: 8px;
+                padding: 6px 14px;
+                font-size: 14px;
+                cursor: pointer;
+                flex: none;
+            }
             .ons-dlg-swatch {
                 width: 44px;
                 height: 28px;
@@ -1874,6 +1906,9 @@
                         '<input id="ons_dlg_active" class="ons-dlg-swatch" type="color" value="' + t.activeColor + '"></div></div>' +
                     '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>透明度 <b id="ons_dlg_alpha_val">' + alpha + '%</b></span></div>' +
                         '<input id="ons_dlg_alpha" class="ons-dlg-range" type="range" min="10" max="100" step="1" value="' + alpha + '"></div>' +
+                    '<div class="ons-dlg-row"><div class="ons-dlg-label"><span>恢复默认颜色</span>' +
+                        '<button class="ons-dlg-mini" id="ons_dlg_reset_colors">恢复</button></div>' +
+                        '<div class="ons-dlg-desc">把按键颜色与触发后颜色恢复为默认的白色 / 粉色</div></div>' +
                     '<div class="ons-dlg-sec">存档</div>' +
                     item("ons_dlg_sync", "云同步存档") +
                     '<div class="ons-dlg-sec">离线</div>' +
@@ -1952,6 +1987,13 @@
                         el("ons_dlg_alpha_val").textContent = this.value + "%";
                         save_theme({sideAlpha: this.value / 100});
                         paint_range(range);
+                    });
+                    el("ons_dlg_reset_colors").addEventListener("click", function () {
+                        save_theme({
+                            btnColor: ONS_THEME_DEFAULT.btnColor,
+                            activeColor: ONS_THEME_DEFAULT.activeColor
+                        });
+                        open_side_settings("main");
                     });
                     el("ons_dlg_sync").addEventListener("click", function () { open_side_settings("sync"); });
                     el("ons_dlg_about").addEventListener("click", function () { open_side_settings("about"); });
