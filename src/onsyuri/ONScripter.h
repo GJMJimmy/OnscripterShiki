@@ -103,6 +103,7 @@ public:
     void setVsyncOff();
     void setFontCache();
     void setDebugLevel(int debug);
+    void setClickThrough();
     void enableButtonShortCut();
     void enableWheelDownAdvance();
     void disableRescale();
@@ -346,6 +347,16 @@ private:
            WAIT_TEXT_MODE   = 256 // clickwait, newpage, select
     };
     int  event_mode;
+
+    // --click-through: some ports (e.g. those written for MiNE) put a
+    // "print N" pause after every line of text. ONScripter swallows a click
+    // in that wait and drops right clicks entirely, so advancing by one click
+    // is impossible. With this flag the input is held and handed back once
+    // the effect is over. Off by default.
+    bool click_through_flag;
+    bool in_effect_wait;
+    SDL_Event deferred_event[4];
+    int deferred_event_count;
 
     bool is_script_read;
     char *wm_title_string;

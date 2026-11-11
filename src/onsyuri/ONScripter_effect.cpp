@@ -450,7 +450,9 @@ bool ONScripter::doEffect( EffectLink *effect, bool clear_dirty_region )
     effect_counter += effect_timer_resolution;
 
     event_mode = WAIT_INPUT_MODE;
+    in_effect_wait = click_through_flag;
     waitEvent(0);
+    in_effect_wait = false;
     if ( !((automode_flag || autoclick_time > 0) ||
            (usewheel_flag  && current_button_state.button == -5) ||
            (!usewheel_flag && current_button_state.button == -2)) ){
@@ -473,7 +475,15 @@ bool ONScripter::doEffect( EffectLink *effect, bool clear_dirty_region )
         event_mode = IDLE_EVENT_MODE;
         if (effect_blank != 0 && effect_counter != 0)
             waitEvent(effect_blank);
-        
+
+        // --click-through: give back the input this effect held on to, after the
+        // blank wait, so the next text/button wait receives it exactly once.
+        if ( click_through_flag && deferred_event_count > 0 ){
+            for (int k=0 ; k<deferred_event_count ; k++)
+                SDL_PushEvent( &deferred_event[k] );
+            deferred_event_count = 0;
+        }
+
         return false;
     }
 }

@@ -128,6 +128,10 @@ void ONScripter::setDebugLevel(int debug) {
     debug_level = debug;
 }
 
+void ONScripter::setClickThrough() {
+    click_through_flag = true;
+}
+
 void ONScripter::initSDL()
 {
     /* ---------------------------------------- */
@@ -378,6 +382,9 @@ ONScripter::ONScripter()
     texture_info = new AnimationInfo[MAX_TEXTURE_NUM];
     smpeg_info = NULL;
     current_button_state.down_flag = false;
+    click_through_flag = false;
+    in_effect_wait = false;
+    deferred_event_count = 0;
     vsync = true;
     video = true;
 

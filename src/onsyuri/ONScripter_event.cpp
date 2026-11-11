@@ -379,6 +379,21 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
         return false;
     }
 
+    // --click-through: an effect/delay wait (the "print N" pause a MiNE-style
+    // port puts after every line of text) must not swallow input. Hold the
+    // mouse event and hand it back once the effect is over, so the following
+    // text/button wait receives it exactly once (MiNE semantics).
+    if ( click_through_flag && in_effect_wait &&
+         (event->button == SDL_BUTTON_LEFT || event->button == SDL_BUTTON_RIGHT) ){
+        if ( deferred_event_count < 4 ){
+            SDL_Event &de = deferred_event[deferred_event_count++];
+            SDL_memset(&de, 0, sizeof(SDL_Event));
+            de.type = event->type;
+            de.button = *event;
+        }
+        return false;
+    }
+
     if ( (event->button == SDL_BUTTON_RIGHT && trap_mode & TRAP_RIGHT_CLICK) ||
          (event->button == SDL_BUTTON_LEFT  && trap_mode & TRAP_LEFT_CLICK) ){
         if (trapHandler()) return true;
@@ -402,7 +417,8 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
 
     if ( ((event->button == SDL_BUTTON_RIGHT && event->type == SDL_MOUSEBUTTONUP) || longpress_flag) &&
          ((rmode_flag && event_mode & WAIT_TEXT_MODE) ||
-          (event_mode & (WAIT_BUTTON_MODE | WAIT_RCLICK_MODE))) ){
+          (event_mode & (WAIT_BUTTON_MODE | WAIT_RCLICK_MODE)) ||
+          (click_through_flag && (event_mode & WAIT_INPUT_MODE))) ){
         current_button_state.button = -1;
         sprintf(current_button_state.str, "RCLICK");
         if (event_mode & WAIT_TEXT_MODE){
@@ -445,6 +461,7 @@ bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
         sprintf(current_button_state.str, "MCLICK");
     }
     else return false;
+
 
     if ( event_mode & (WAIT_INPUT_MODE | WAIT_BUTTON_MODE) ){
         if (!(event_mode & (WAIT_TEXT_MODE)))

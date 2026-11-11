@@ -63,6 +63,7 @@ void optionHelp()
     printf( "  -r, --root path\tset the root path to the archives\n");
     printf( "      --save-dir\tset save dir\n");
     printf( "      --debug:1\t\tprint debug info\n");
+    printf( "      --click-through\tcarry a click that ends an effect wait over to the next text wait (for MiNE-style ports)\n");
     printf( "      --enc:[gbk|sjis|utf8]\tdefine the encoding of script\n\n");
 
     printf( " render options: \n");
@@ -379,6 +380,9 @@ void parseOption(int argc, char *argv[]) {
             }
             else if (!strcmp(argv[0]+1, "-debug:1")){
                 ons.setDebugLevel(1);
+            }
+            else if (!strcmp(argv[0]+1, "-click-through")){
+                ons.setClickThrough();
             }
             else if (!strcmp(argv[0]+1, "-enc:sjis")){
                 if(!coding2utf16) coding2utf16 = new SJIS2UTF16();
